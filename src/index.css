@@ -1,0 +1,85 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&family=Fraunces:wght@600;700&display=swap');
+@import "tailwindcss";
+
+@theme {
+  --color-primary: #0F3D3E;
+  --color-primary-light: #1B5E5F;
+  --color-primary-dark: #0A2B2C;
+  --color-accent: #C9A25D;
+  --color-accent-light: #DDBB7E;
+  --color-accent-dark: #A9813F;
+  --color-neutral-50: #FAFAF8;
+  --color-neutral-100: #F2F1ED;
+  --color-neutral-200: #E4E2DB;
+  --color-neutral-600: #6B6B63;
+  --color-neutral-900: #1F1E1B;
+  --color-success: #3D8361;
+  --color-warning: #C9822E;
+  --color-danger: #B23A3A;
+  --font-sans: Inter, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+  --font-heading: Fraunces, Poppins, ui-sans-serif, system-ui;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  font-family: var(--font-sans);
+  background: var(--color-neutral-50);
+  color: var(--color-neutral-900);
+}
+
+.container {
+  max-width: 80rem;
+  margin-left: auto;
+  margin-right: auto;
+  padding-left: 1rem;
+  padding-right: 1rem;
+}
+
+.card {
+  background: var(--color-neutral-100);
+  border-radius: 1rem;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+  padding: 1rem;
+  transition: box-shadow 150ms ease;
+}
+
+.card:hover {
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.08);
+}
+
+.badge-success,
+.badge-warning,
+.badge-danger {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 9999px;
+  padding: 0.25rem 0.75rem;
+  font-size: 0.875rem;
+  color: #fff;
+}
+
+.badge-success { background: var(--color-success); }
+.badge-warning { background: var(--color-warning); }
+.badge-danger { background: var(--color-danger); }
+
+.btn-primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 0.5rem;
+  padding: 0.5rem 1rem;
+  background: var(--color-accent);
+  color: #fff;
+  text-decoration: none;
+}
+
+.btn-primary:hover {
+  background: var(--color-accent-dark);
+}
+
