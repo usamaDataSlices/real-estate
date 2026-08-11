@@ -5,6 +5,7 @@ import type { Listing, ListingStatus } from '../types/listing'
 import type { PropertyDocument } from '../types/document'
 import AdminListingForm, { type AdminListingSubmitPayload } from '../components/AdminListingForm'
 import { propertyRowToListing } from '../lib/listing-mappers'
+import { ensureAdminProfile, requireAuthSession } from '../lib/auth'
 import DocxUploader from '../components/DocxUploader'
 import DocxEditor from '../components/DocxEditor'
 import ConfirmModal from '../components/ConfirmModal'
@@ -198,6 +199,7 @@ export default function AdminDashboard() {
 
       const { data } = await supabase.auth.getSession()
       if (data.session?.user) {
+        await ensureAdminProfile(data.session.user.id, data.session.user.email)
         setUser({ email: data.session.user.email ?? undefined })
         setSessionState('authenticated')
       } else {
@@ -209,8 +211,9 @@ export default function AdminDashboard() {
 
     if (!isSupabaseConfigured) return
 
-    const { data } = supabase.auth.onAuthStateChange((_event, session) => {
+    const { data } = supabase.auth.onAuthStateChange(async (_event, session) => {
       if (session?.user) {
+        await ensureAdminProfile(session.user.id, session.user.email)
         setUser({ email: session.user.email ?? undefined })
         setSessionState('authenticated')
       } else {
@@ -236,10 +239,14 @@ export default function AdminDashboard() {
       return
     }
 
-    const { error } = await supabase.auth.signInWithPassword({ email, password })
+    const { data, error } = await supabase.auth.signInWithPassword({ email, password })
     if (error) {
       setMessage(error.message)
       return
+    }
+
+    if (data.user) {
+      await ensureAdminProfile(data.user.id, data.user.email)
     }
 
     setEmail('')
@@ -299,6 +306,11 @@ export default function AdminDashboard() {
   const saveDocMutation = useMutation({
     mutationFn: async (payload: { id?: string; propertyId: string; title: string; content: string }) => {
       if (!isSupabaseConfigured) throw new Error('Supabase is not configured')
+      await requireAuthSession()
+
+      if (!payload.propertyId) {
+        throw new Error('Select a property before saving this document.')
+      }
 
       const docId = payload.id ?? makeId()
       const payloadToSave = {
@@ -322,14 +334,22 @@ export default function AdminDashboard() {
     onError: (error: unknown) => {
       const pgError = error as { code?: string; message?: string }
       const message = pgError.message ?? 'Save failed.'
+
+      if (message.includes('session expired')) {
+        setSessionState('unauthenticated')
+        setUser(null)
+        setEditingDoc(null)
+      }
+
       if (
         pgError.code === '42501'
         || message.toLowerCase().includes('row-level security')
-        || message.toLowerCase().includes('permission')
+        || message.toLowerCase().includes('permission denied')
       ) {
-        setMessage('Save failed: admin access denied. Run supabase/migrations/004_fix_property_documents_rls.sql in the Supabase SQL editor.')
+        setMessage('Save failed: not authorized. Sign out, sign in again, then run supabase/migrations/005_property_documents_complete.sql in Supabase if it still fails.')
         return
       }
+
       setMessage(message)
     },
   })
