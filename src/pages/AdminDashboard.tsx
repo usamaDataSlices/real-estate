@@ -1,8 +1,8 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { supabase, isSupabaseConfigured } from '../lib/supabase'
-import type { Listing, ListingImage, ListingStatus } from '../types/listing'
-import AdminListingForm, { type AdminListingFormValues } from '../components/AdminListingForm'
+import type { Listing, ListingStatus } from '../types/listing'
+import AdminListingForm, { type AdminListingSubmitPayload } from '../components/AdminListingForm'
 import { propertyRowToListing } from '../lib/listing-mappers'
 
 type AuthUser = {
@@ -15,7 +15,7 @@ function makeId() {
   return crypto.randomUUID()
 }
 
-function listingFromFormValues(id: string, values: AdminListingFormValues, images: ListingImage[]): Listing {
+function listingFromFormValues(id: string, values: AdminListingSubmitPayload): Listing {
   return {
     id,
     title: values.title,
@@ -31,8 +31,8 @@ function listingFromFormValues(id: string, values: AdminListingFormValues, image
     size: values.size,
     amenities: values.amenities ? values.amenities.split(',').map((item) => item.trim()).filter(Boolean) : [],
     status: values.status as ListingStatus,
-    portalLinks: (values.portalLinks ?? []).filter((link) => link.url.trim()),
-    images,
+    portalLinks: values.portalLinks,
+    images: values.images,
   }
 }
 
@@ -248,11 +248,11 @@ export default function AdminDashboard() {
     },
   })
 
-  const saveListing = async (payload: AdminListingFormValues & { images: ListingImage[] }) => {
+  const saveListing = async (payload: AdminListingSubmitPayload) => {
     setMessage(null)
 
     const id = editing?.id ?? makeId()
-    const next = listingFromFormValues(id, payload, payload.images)
+    const next = listingFromFormValues(id, payload)
 
     setItems((current) => [next, ...current.filter((item) => item.id !== id)])
     await saveMutation.mutateAsync(next)

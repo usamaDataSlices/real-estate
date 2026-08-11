@@ -2,14 +2,25 @@ import { useEffect } from 'react'
 import { useFieldArray, useForm } from 'react-hook-form'
 import { z } from 'zod'
 import { zodResolver } from '@hookform/resolvers/zod'
-import type { Listing, ListingImage } from '../types/listing'
-import { PORTAL_OPTIONS, resolvePortalLinks } from '../lib/portalLinks'
+import type { Listing, ListingImage, PortalLink } from '../types/listing'
+import { PORTAL_OPTIONS, formValuesToPortalLink, portalLinkToFormValues, resolvePortalLinks } from '../lib/portalLinks'
 import ImageUploader from './ImageUploader'
 
-const portalLinkSchema = z.object({
-  portal: z.string().min(1),
-  url: z.string().url('Enter a valid URL').or(z.literal('')),
-})
+const portalLinkSchema = z
+  .object({
+    portalKind: z.enum(['bayut', 'dubizzle', 'property_finder', 'custom']),
+    customPortalName: z.string().optional(),
+    url: z.string().url('Enter a valid URL').or(z.literal('')),
+  })
+  .superRefine((value, ctx) => {
+    if (value.portalKind === 'custom' && value.url.trim() && !value.customPortalName?.trim()) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'Enter a portal name',
+        path: ['customPortalName'],
+      })
+    }
+  })
 
 const listingSchema = z.object({
   title: z.string().min(3, 'Title is required'),
@@ -30,9 +41,14 @@ const listingSchema = z.object({
 
 export type AdminListingFormValues = z.infer<typeof listingSchema>
 
+export type AdminListingSubmitPayload = Omit<AdminListingFormValues, 'portalLinks'> & {
+  portalLinks: PortalLink[]
+  images: ListingImage[]
+}
+
 type Props = {
   value: Listing | null
-  onSubmit: (payload: AdminListingFormValues & { images: ListingImage[] }) => void
+  onSubmit: (payload: AdminListingSubmitPayload) => void
   onCancel: () => void
 }
 
@@ -87,10 +103,7 @@ export default function AdminListingForm({ value, onSubmit, onCancel }: Props) {
       size: value.size,
       amenities: value.amenities.join(', '),
       status: value.status,
-      portalLinks: resolvePortalLinks(value).map((link) => ({
-        portal: link.portal,
-        url: link.url,
-      })),
+      portalLinks: resolvePortalLinks(value).map((link) => portalLinkToFormValues(link)),
     })
     imageState.reset({ images: value.images })
   }, [form, imageState, value])
@@ -101,11 +114,11 @@ export default function AdminListingForm({ value, onSubmit, onCancel }: Props) {
     <form
       className="space-y-6"
       onSubmit={form.handleSubmit((data: AdminListingFormValues) => {
-        onSubmit({
-          ...data,
-          portalLinks: data.portalLinks.filter((link) => link.url.trim()),
-          images,
-        })
+        const portalLinks = data.portalLinks
+          .map((link) => formValuesToPortalLink(link))
+          .filter((link): link is PortalLink => link !== null)
+
+        onSubmit({ ...data, portalLinks, images })
       })}
     >
       <div className="grid gap-4 md:grid-cols-2">
@@ -194,48 +207,66 @@ export default function AdminListingForm({ value, onSubmit, onCancel }: Props) {
           <button
             type="button"
             className="rounded-md border border-neutral-200 px-3 py-1.5 text-sm"
-            onClick={() => append({ portal: 'bayut', url: '' })}
+            onClick={() => append({ portalKind: 'bayut', customPortalName: '', url: '' })}
           >
             Add portal link
           </button>
         </div>
 
         {fields.length === 0 ? (
-          <p className="text-sm text-neutral-600">No portal links yet. Add Bayut, Dubizzle, Property Finder, or other URLs.</p>
+          <p className="text-sm text-neutral-600">No portal links yet. Add Bayut, Dubizzle, Property Finder, or a custom portal.</p>
         ) : (
           <div className="space-y-3">
-            {fields.map((field, index) => (
-              <div key={field.id} className="grid gap-3 md:grid-cols-[180px_1fr_auto]">
-                <label className="space-y-1 block">
-                  <span className="text-xs text-neutral-600">Portal</span>
-                  <select className="w-full rounded-lg border border-neutral-200 px-3 py-2" {...form.register(`portalLinks.${index}.portal`)}>
-                    {PORTAL_OPTIONS.map((option) => (
-                      <option key={option.value} value={option.value}>
-                        {option.label}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-                <label className="space-y-1 block">
-                  <span className="text-xs text-neutral-600">URL</span>
-                  <input
-                    className="w-full rounded-lg border border-neutral-200 px-3 py-2"
-                    placeholder="https://"
-                    {...form.register(`portalLinks.${index}.url`)}
-                  />
-                  <p className="text-xs text-danger">{form.formState.errors.portalLinks?.[index]?.url?.message}</p>
-                </label>
-                <div className="flex items-end">
-                  <button
-                    type="button"
-                    className="rounded-md border border-danger px-3 py-2 text-sm text-danger"
-                    onClick={() => remove(index)}
-                  >
-                    Remove
-                  </button>
+            {fields.map((field, index) => {
+              const portalKind = form.watch(`portalLinks.${index}.portalKind`)
+
+              return (
+                <div key={field.id} className="space-y-3 rounded-lg border border-neutral-200 p-4">
+                  <div className={`grid gap-3 ${portalKind === 'custom' ? 'md:grid-cols-2' : 'md:grid-cols-1'}`}>
+                    <label className="space-y-1 block">
+                      <span className="text-xs text-neutral-600">Portal</span>
+                      <select className="w-full rounded-lg border border-neutral-200 px-3 py-2" {...form.register(`portalLinks.${index}.portalKind`)}>
+                        {PORTAL_OPTIONS.map((option) => (
+                          <option key={option.value} value={option.value}>
+                            {option.label}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                    {portalKind === 'custom' ? (
+                      <label className="space-y-1 block">
+                        <span className="text-xs text-neutral-600">Portal name</span>
+                        <input
+                          className="w-full rounded-lg border border-neutral-200 px-3 py-2"
+                          placeholder="e.g. Houzza"
+                          {...form.register(`portalLinks.${index}.customPortalName`)}
+                        />
+                        <p className="text-xs text-danger">{form.formState.errors.portalLinks?.[index]?.customPortalName?.message}</p>
+                      </label>
+                    ) : null}
+                  </div>
+
+                  <div className="grid gap-3 md:grid-cols-[1fr_auto] md:items-end">
+                    <label className="space-y-1 block">
+                      <span className="text-xs text-neutral-600">URL</span>
+                      <input
+                        className="w-full rounded-lg border border-neutral-200 px-3 py-2"
+                        placeholder="https://"
+                        {...form.register(`portalLinks.${index}.url`)}
+                      />
+                      <p className="text-xs text-danger">{form.formState.errors.portalLinks?.[index]?.url?.message}</p>
+                    </label>
+                    <button
+                      type="button"
+                      className="rounded-md border border-danger px-3 py-2 text-sm text-danger"
+                      onClick={() => remove(index)}
+                    >
+                      Remove
+                    </button>
+                  </div>
                 </div>
-              </div>
-            ))}
+              )
+            })}
           </div>
         )}
       </div>
