@@ -7,6 +7,7 @@ import AdminListingForm, { type AdminListingSubmitPayload } from '../components/
 import { propertyRowToListing } from '../lib/listing-mappers'
 import DocxUploader from '../components/DocxUploader'
 import DocxEditor from '../components/DocxEditor'
+import ConfirmModal from '../components/ConfirmModal'
 import { exportToDocx } from '../lib/export-docx'
 import { FileText, Plus, FileEdit, Trash2, Home, Download, Loader2 } from 'lucide-react'
 
@@ -97,6 +98,10 @@ async function upsertListing(listing: Listing) {
   }
 }
 
+type DeleteTarget =
+  | { type: 'listing'; id: string; title: string }
+  | { type: 'document'; id: string; title: string }
+
 export default function AdminDashboard() {
   const [sessionState, setSessionState] = useState<SessionState>('loading')
   const [user, setUser] = useState<AuthUser | null>(null)
@@ -112,6 +117,7 @@ export default function AdminDashboard() {
   const [editingDoc, setEditingDoc] = useState<{ id?: string; propertyId: string; title: string; content: string } | null>(null)
   const [uploadingDoc, setUploadingDoc] = useState(false)
   const [uploadTargetProperty, setUploadTargetProperty] = useState<string>('')
+  const [deleteTarget, setDeleteTarget] = useState<DeleteTarget | null>(null)
 
   const queryClient = useQueryClient()
 
@@ -293,17 +299,19 @@ export default function AdminDashboard() {
   const saveDocMutation = useMutation({
     mutationFn: async (payload: { id?: string; propertyId: string; title: string; content: string }) => {
       if (!isSupabaseConfigured) throw new Error('Supabase is not configured')
-      
+
+      const docId = payload.id ?? makeId()
       const payloadToSave = {
-        ...(payload.id ? { id: payload.id } : {}),
+        id: docId,
         property_id: payload.propertyId,
         title: payload.title,
         content: payload.content,
-        updated_at: new Date().toISOString()
+        updated_at: new Date().toISOString(),
       }
 
       const { error } = await supabase.from('property_documents').upsert(payloadToSave)
       if (error) throw error
+      return docId
     },
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: ['admin-documents'] })
@@ -311,8 +319,18 @@ export default function AdminDashboard() {
       setEditingDoc(null)
       setUploadingDoc(false)
     },
-    onError: (error) => {
-      setMessage(error instanceof Error ? error.message : 'Save failed.')
+    onError: (error: unknown) => {
+      const pgError = error as { code?: string; message?: string }
+      const message = pgError.message ?? 'Save failed.'
+      if (
+        pgError.code === '42501'
+        || message.toLowerCase().includes('row-level security')
+        || message.toLowerCase().includes('permission')
+      ) {
+        setMessage('Save failed: admin access denied. Run supabase/migrations/004_fix_property_documents_rls.sql in the Supabase SQL editor.')
+        return
+      }
+      setMessage(message)
     },
   })
 
@@ -340,12 +358,32 @@ export default function AdminDashboard() {
     setEditing(null)
   }
 
-  const deleteListing = (id: string) => {
-    if (confirm('Are you sure you want to delete this listing?')) {
-      setItems((current) => current.filter((item) => item.id !== id))
-      void deleteMutation.mutateAsync(id)
-    }
+  const deleteListing = (item: Listing) => {
+    setDeleteTarget({ type: 'listing', id: item.id, title: item.title })
   }
+
+  const confirmDelete = () => {
+    if (!deleteTarget) return
+
+    if (deleteTarget.type === 'listing') {
+      setItems((current) => current.filter((item) => item.id !== deleteTarget.id))
+      void deleteMutation.mutateAsync(deleteTarget.id).finally(() => setDeleteTarget(null))
+      return
+    }
+
+    deleteDocMutation.mutate(deleteTarget.id, {
+      onSettled: () => setDeleteTarget(null),
+    })
+  }
+
+  const deleteModalDescription =
+    deleteTarget?.type === 'listing'
+      ? `This will permanently remove "${deleteTarget.title}" and its linked images. This action cannot be undone.`
+      : deleteTarget?.type === 'document'
+        ? `This will permanently remove "${deleteTarget.title}". This action cannot be undone.`
+        : ''
+
+  const isDeletePending = deleteMutation.isPending || deleteDocMutation.isPending
 
   if (sessionState === 'loading') {
     return <div className="card">Loading admin session...</div>
@@ -467,7 +505,7 @@ export default function AdminDashboard() {
                     }}>
                       <Plus className="w-3 h-3 inline-block mr-1" /> Add Document
                     </button>
-                    <button type="button" className="py-1.5 px-3 text-xs font-medium rounded-md border border-danger/30 text-danger hover:bg-danger/5 ml-auto" onClick={() => deleteListing(item.id)}>
+                    <button type="button" className="py-1.5 px-3 text-xs font-medium rounded-md border border-danger/30 text-danger hover:bg-danger/5 ml-auto" onClick={() => deleteListing(item)}>
                       Delete
                     </button>
                   </div>
@@ -591,11 +629,7 @@ export default function AdminDashboard() {
                                 <Download className="w-4 h-4" /> Export
                               </button>
                               <button 
-                                onClick={() => {
-                                   if (confirm('Delete this document?')) {
-                                      deleteDocMutation.mutate(doc.id)
-                                   }
-                                }}
+                                onClick={() => setDeleteTarget({ type: 'document', id: doc.id, title: doc.title })}
                                 className="text-sm font-medium text-danger hover:text-danger-dark p-1"
                               >
                                 <Trash2 className="w-4 h-4" />
@@ -616,6 +650,18 @@ export default function AdminDashboard() {
           )}
         </section>
       )}
+
+      <ConfirmModal
+        open={deleteTarget !== null}
+        title={deleteTarget?.type === 'listing' ? 'Delete listing?' : 'Delete document?'}
+        description={deleteModalDescription}
+        confirmLabel="Delete"
+        loading={isDeletePending}
+        onCancel={() => {
+          if (!isDeletePending) setDeleteTarget(null)
+        }}
+        onConfirm={confirmDelete}
+      />
     </div>
   )
 }

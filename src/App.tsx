@@ -10,7 +10,7 @@ const queryClient = new QueryClient()
 export default function App() {
   return (
     <QueryClientProvider client={queryClient}>
-      <BrowserRouter>
+      <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
         <div className="min-h-screen flex flex-col bg-neutral-50">
           {/* Elegant Sticky Navigation Bar */}
           <header className="sticky top-0 z-50 border-b border-neutral-200/50 bg-white/80 backdrop-blur-md">
