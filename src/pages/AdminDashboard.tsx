@@ -2,14 +2,20 @@ import { useEffect, useMemo, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { supabase, isSupabaseConfigured } from '../lib/supabase'
 import type { Listing, ListingStatus } from '../types/listing'
+import type { PropertyDocument } from '../types/document'
 import AdminListingForm, { type AdminListingSubmitPayload } from '../components/AdminListingForm'
 import { propertyRowToListing } from '../lib/listing-mappers'
+import DocxUploader from '../components/DocxUploader'
+import DocxEditor from '../components/DocxEditor'
+import { exportToDocx } from '../lib/export-docx'
+import { FileText, Plus, FileEdit, Trash2, Home, Download, Loader2 } from 'lucide-react'
 
 type AuthUser = {
   email?: string
 }
 
 type SessionState = 'loading' | 'authenticated' | 'unauthenticated'
+type ActiveTab = 'listings' | 'documents'
 
 function makeId() {
   return crypto.randomUUID()
@@ -99,6 +105,14 @@ export default function AdminDashboard() {
   const [message, setMessage] = useState<string | null>(null)
   const [items, setItems] = useState<Listing[]>([])
   const [editing, setEditing] = useState<Listing | null>(null)
+
+  // Document state
+  const [activeTab, setActiveTab] = useState<ActiveTab>('listings')
+  const [documents, setDocuments] = useState<PropertyDocument[]>([])
+  const [editingDoc, setEditingDoc] = useState<{ id?: string; propertyId: string; title: string; content: string } | null>(null)
+  const [uploadingDoc, setUploadingDoc] = useState(false)
+  const [uploadTargetProperty, setUploadTargetProperty] = useState<string>('')
+
   const queryClient = useQueryClient()
 
   const listingsQuery = useQuery({
@@ -136,11 +150,38 @@ export default function AdminDashboard() {
     enabled: sessionState === 'authenticated',
   })
 
+  const documentsQuery = useQuery({
+    queryKey: ['admin-documents'],
+    queryFn: async () => {
+      if (!isSupabaseConfigured) return []
+      const { data, error } = await supabase
+        .from('property_documents')
+        .select('*')
+        .order('created_at', { ascending: false })
+      
+      if (error) throw error
+      
+      return (data ?? []).map((doc: any) => ({
+        id: doc.id,
+        propertyId: doc.property_id,
+        title: doc.title,
+        content: doc.content,
+        fileUrl: doc.file_url,
+        storagePath: doc.storage_path,
+        createdAt: doc.created_at,
+        updatedAt: doc.updated_at
+      })) as PropertyDocument[]
+    },
+    enabled: sessionState === 'authenticated',
+  })
+
   useEffect(() => {
-    if (listingsQuery.data) {
-      setItems(listingsQuery.data)
-    }
+    if (listingsQuery.data) setItems(listingsQuery.data)
   }, [listingsQuery.data])
+
+  useEffect(() => {
+    if (documentsQuery.data) setDocuments(documentsQuery.data)
+  }, [documentsQuery.data])
 
   useEffect(() => {
     const load = async () => {
@@ -179,7 +220,8 @@ export default function AdminDashboard() {
     total: items.length,
     published: items.filter((item) => item.status === 'published').length,
     draft: items.filter((item) => item.status === 'draft').length,
-  }), [items])
+    documents: documents.length,
+  }), [items, documents])
 
   const login = async () => {
     setMessage(null)
@@ -209,7 +251,7 @@ export default function AdminDashboard() {
     },
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: ['admin-listings'] })
-      setMessage('Saved to Supabase.')
+      setMessage('Listing saved.')
       setEditing(null)
     },
     onError: (error) => {
@@ -241,7 +283,48 @@ export default function AdminDashboard() {
     },
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: ['admin-listings'] })
-      setMessage('Deleted from Supabase.')
+      setMessage('Listing deleted.')
+    },
+    onError: (error) => {
+      setMessage(error instanceof Error ? error.message : 'Delete failed.')
+    },
+  })
+
+  const saveDocMutation = useMutation({
+    mutationFn: async (payload: { id?: string; propertyId: string; title: string; content: string }) => {
+      if (!isSupabaseConfigured) throw new Error('Supabase is not configured')
+      
+      const payloadToSave = {
+        ...(payload.id ? { id: payload.id } : {}),
+        property_id: payload.propertyId,
+        title: payload.title,
+        content: payload.content,
+        updated_at: new Date().toISOString()
+      }
+
+      const { error } = await supabase.from('property_documents').upsert(payloadToSave)
+      if (error) throw error
+    },
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ['admin-documents'] })
+      setMessage('Document saved.')
+      setEditingDoc(null)
+      setUploadingDoc(false)
+    },
+    onError: (error) => {
+      setMessage(error instanceof Error ? error.message : 'Save failed.')
+    },
+  })
+
+  const deleteDocMutation = useMutation({
+    mutationFn: async (id: string) => {
+      if (!isSupabaseConfigured) throw new Error('Supabase is not configured')
+      const { error } = await supabase.from('property_documents').delete().eq('id', id)
+      if (error) throw error
+    },
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ['admin-documents'] })
+      setMessage('Document deleted.')
     },
     onError: (error) => {
       setMessage(error instanceof Error ? error.message : 'Delete failed.')
@@ -250,18 +333,18 @@ export default function AdminDashboard() {
 
   const saveListing = async (payload: AdminListingSubmitPayload) => {
     setMessage(null)
-
     const id = editing?.id ?? makeId()
     const next = listingFromFormValues(id, payload)
-
     setItems((current) => [next, ...current.filter((item) => item.id !== id)])
     await saveMutation.mutateAsync(next)
     setEditing(null)
   }
 
   const deleteListing = (id: string) => {
-    setItems((current) => current.filter((item) => item.id !== id))
-    void deleteMutation.mutateAsync(id)
+    if (confirm('Are you sure you want to delete this listing?')) {
+      setItems((current) => current.filter((item) => item.id !== id))
+      void deleteMutation.mutateAsync(id)
+    }
   }
 
   if (sessionState === 'loading') {
@@ -270,10 +353,10 @@ export default function AdminDashboard() {
 
   if (sessionState === 'unauthenticated') {
     return (
-      <div className="max-w-xl space-y-6">
-        <div className="space-y-2">
-          <h2 className="text-2xl font-semibold">Admin login</h2>
-          <p className="text-neutral-600">Email/password login for the single admin role.</p>
+      <div className="max-w-xl mx-auto space-y-6 mt-10">
+        <div className="space-y-2 text-center">
+          <h2 className="text-3xl font-heading font-semibold text-primary">Admin Portal</h2>
+          <p className="text-neutral-600">Secure entry for branch administration.</p>
         </div>
         <div className="card space-y-4">
           <label className="block space-y-1">
@@ -285,7 +368,7 @@ export default function AdminDashboard() {
             <input className="w-full rounded-lg border border-neutral-200 px-3 py-2" type="password" value={password} onChange={(e) => setPassword(e.target.value)} />
           </label>
           {message ? <p className="text-sm text-danger">{message}</p> : null}
-          <button type="button" className="btn-primary" onClick={() => void login()}>
+          <button type="button" className="btn-primary w-full" onClick={() => void login()}>
             Sign in
           </button>
         </div>
@@ -293,74 +376,246 @@ export default function AdminDashboard() {
     )
   }
 
+  if (editingDoc) {
+    return (
+      <div className="space-y-4" style={{ height: 'calc(100vh - 180px)' }}>
+        <DocxEditor
+          initialContent={editingDoc.content}
+          title={editingDoc.title}
+          onTitleChange={(title) => setEditingDoc((prev) => prev ? { ...prev, title } : null)}
+          onSave={(content) => {
+            saveDocMutation.mutate({ ...editingDoc, content })
+          }}
+          onExport={(content) => {
+            void exportToDocx(content, `${editingDoc.title || 'document'}.docx`)
+          }}
+          onCancel={() => setEditingDoc(null)}
+        />
+        {saveDocMutation.isPending && <p className="text-sm text-neutral-600">Saving document...</p>}
+      </div>
+    )
+  }
+
   return (
     <div className="space-y-8">
-      <section className="flex flex-col gap-4 rounded-xl bg-white p-6 shadow-sm md:flex-row md:items-center md:justify-between">
+      <section className="flex flex-col gap-4 rounded-xl bg-white p-6 shadow-sm md:flex-row md:items-center md:justify-between border border-neutral-200">
         <div>
-          <p className="text-sm uppercase tracking-[0.2em] text-accent-dark">Admin panel</p>
-          <h2 className="text-3xl font-heading font-semibold">Property listings</h2>
-          <p className="text-neutral-600">Signed in as {user?.email ?? 'admin'}.</p>
+          <p className="text-xs uppercase tracking-[0.2em] text-accent-dark font-medium mb-1">Admin Panel</p>
+          <h2 className="text-3xl font-heading font-semibold text-primary">
+            {activeTab === 'listings' ? 'Property Listings' : 'Document Hub'}
+          </h2>
+          <p className="text-sm text-neutral-600 mt-1">Signed in as {user?.email ?? 'admin'}.</p>
         </div>
-        <div className="flex flex-wrap gap-3">
-          <div className="rounded-lg bg-neutral-100 px-4 py-2 text-sm">Total: {counts.total}</div>
-          <div className="rounded-lg bg-neutral-100 px-4 py-2 text-sm">Published: {counts.published}</div>
-          <div className="rounded-lg bg-neutral-100 px-4 py-2 text-sm">Drafts: {counts.draft}</div>
-          <button type="button" className="rounded-md border border-neutral-200 px-4 py-2" onClick={() => setEditing(null)}>
-            New listing
-          </button>
-          <button type="button" className="rounded-md border border-neutral-200 px-4 py-2" onClick={() => void logout()}>
+        <div className="flex flex-col sm:flex-row gap-4 items-center">
+          <div className="flex bg-neutral-100 p-1 rounded-lg">
+            <button
+              onClick={() => setActiveTab('listings')}
+              className={`px-4 py-2 text-sm font-medium rounded-md transition-colors flex items-center gap-2 ${activeTab === 'listings' ? 'bg-white shadow-sm text-primary' : 'text-neutral-600 hover:text-primary'}`}
+            >
+              <Home className="w-4 h-4" /> Properties
+            </button>
+            <button
+              onClick={() => setActiveTab('documents')}
+              className={`px-4 py-2 text-sm font-medium rounded-md transition-colors flex items-center gap-2 ${activeTab === 'documents' ? 'bg-white shadow-sm text-primary' : 'text-neutral-600 hover:text-primary'}`}
+            >
+              <FileText className="w-4 h-4" /> Documents
+            </button>
+          </div>
+          <button type="button" className="text-sm text-neutral-600 hover:text-danger hover:underline transition-colors px-1" onClick={() => void logout()}>
             Sign out
           </button>
         </div>
       </section>
 
-      {message ? <div className="rounded-lg bg-neutral-100 px-4 py-3 text-sm text-neutral-600">{message}</div> : null}
+      {message ? <div className="rounded-lg bg-green-50 border border-green-200 px-4 py-3 text-sm text-green-800">{message}</div> : null}
 
-      <section className="grid gap-8 xl:grid-cols-[1fr_420px]">
-        <div className="space-y-4">
-          {items.length ? (
-            items.map((item) => (
-              <article key={item.id} className="card space-y-3">
-                <div className="flex items-start justify-between gap-4">
-                  <div>
-                    <h3 className="text-xl font-semibold">{item.title}</h3>
-                    <p className="text-sm text-neutral-600">{item.city} · {item.area}</p>
+      {/* PROPERTIES TAB */}
+      {activeTab === 'listings' && (
+        <section className="grid gap-8 xl:grid-cols-[1fr_420px]">
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <div className="flex gap-3">
+                <div className="rounded-lg bg-neutral-100 px-3 py-1.5 text-xs font-semibold text-neutral-700">Total: {counts.total}</div>
+                <div className="rounded-lg bg-green-100/50 px-3 py-1.5 text-xs font-semibold text-success">Published: {counts.published}</div>
+                <div className="rounded-lg bg-orange-100/50 px-3 py-1.5 text-xs font-semibold text-warning">Drafts: {counts.draft}</div>
+              </div>
+            </div>
+            
+            {items.length ? (
+              items.map((item) => (
+                <article key={item.id} className="card space-y-3 relative overflow-hidden group">
+                  <div className="flex items-start justify-between gap-4">
+                    <div>
+                      <h3 className="text-xl font-semibold text-primary group-hover:text-accent-dark transition-colors">{item.title}</h3>
+                      <p className="text-sm text-neutral-600">{item.city} {item.area ? `· ${item.area}` : ''}</p>
+                    </div>
+                    <span className={item.status === 'published' ? 'badge-success' : 'badge-warning'}>{item.status}</span>
                   </div>
-                  <span className={item.status === 'published' ? 'badge-success' : 'badge-warning'}>{item.status}</span>
-                </div>
-                <div className="flex flex-wrap gap-2 text-sm text-neutral-600">
-                  <span>{item.type}</span>
-                  <span>{item.bedrooms} bed</span>
-                  <span>{item.bathrooms} bath</span>
-                  <span>{item.size} sqft</span>
-                </div>
-                <div className="flex flex-wrap gap-3">
-                  <button type="button" className="rounded-md border border-neutral-200 px-4 py-2" onClick={() => setEditing(item)}>
-                    Edit
-                  </button>
-                  <button type="button" className="rounded-md border border-danger px-4 py-2 text-danger" onClick={() => deleteListing(item.id)}>
-                    Delete
-                  </button>
-                </div>
-              </article>
-            ))
-          ) : (
-            <div className="card text-neutral-600">No listings yet. Create the first property on the right.</div>
-          )}
-        </div>
+                  <div className="flex flex-wrap gap-2 text-xs font-medium text-neutral-500 uppercase tracking-widest mt-2">
+                    <span className="bg-neutral-100 px-2 py-1 rounded">{item.type}</span>
+                    <span className="bg-neutral-100 px-2 py-1 rounded">{item.bedrooms} bed</span>
+                    <span className="bg-neutral-100 px-2 py-1 rounded">{item.bathrooms} bath</span>
+                  </div>
+                  <div className="flex flex-wrap gap-2 pt-3 border-t border-neutral-100 mt-2">
+                    <button type="button" className="btn-primary py-1.5 px-3 text-xs" onClick={() => setEditing(item)}>
+                      Edit Property
+                    </button>
+                    <button type="button" className="py-1.5 px-3 text-xs font-medium rounded-md border border-neutral-200 text-neutral-600 hover:bg-neutral-100" onClick={() => {
+                       setActiveTab('documents')
+                       setUploadTargetProperty(item.id)
+                       setUploadingDoc(true)
+                    }}>
+                      <Plus className="w-3 h-3 inline-block mr-1" /> Add Document
+                    </button>
+                    <button type="button" className="py-1.5 px-3 text-xs font-medium rounded-md border border-danger/30 text-danger hover:bg-danger/5 ml-auto" onClick={() => deleteListing(item.id)}>
+                      Delete
+                    </button>
+                  </div>
+                </article>
+              ))
+            ) : (
+              <div className="card text-center py-12 text-neutral-500">No properties yet. Create the first listing on the right.</div>
+            )}
+          </div>
 
-        <div className="card">
-          <h3 className="mb-4 text-xl font-semibold">{editing ? 'Edit listing' : 'Create listing'}</h3>
-          <AdminListingForm
-            value={editing}
-            onSubmit={(payload) => {
-              void saveListing(payload)
-            }}
-            onCancel={() => setEditing(null)}
-          />
-          {saveMutation.isPending ? <p className="mt-3 text-sm text-neutral-600">Saving...</p> : null}
-        </div>
-      </section>
+          <div className="card self-start sticky top-24">
+            <h3 className="mb-4 text-xl font-semibold text-primary">{editing ? 'Edit Listing' : 'Create Listing'}</h3>
+            <AdminListingForm
+              value={editing}
+              onSubmit={(payload) => { void saveListing(payload) }}
+              onCancel={() => setEditing(null)}
+            />
+            {saveMutation.isPending && <p className="mt-4 text-sm text-neutral-600 flex items-center gap-2"><Loader2 className="w-4 h-4 animate-spin" /> Saving changes...</p>}
+          </div>
+        </section>
+      )}
+
+      {/* DOCUMENTS TAB */}
+      {activeTab === 'documents' && (
+        <section className="space-y-6">
+          <div className="flex items-center justify-between bg-white p-4 rounded-xl shadow-sm border border-neutral-200">
+             <div>
+                <h3 className="font-semibold text-lg text-primary">All Documents</h3>
+                <p className="text-sm text-neutral-600">{counts.documents} files stored securely.</p>
+             </div>
+             <button
+                className="btn-primary flex items-center gap-2"
+                onClick={() => setUploadingDoc(!uploadingDoc)}
+             >
+                {uploadingDoc ? 'Cancel Upload' : <><Plus className="w-4 h-4" /> New Document</>}
+             </button>
+          </div>
+
+          {uploadingDoc && (
+             <div className="grid gap-6 md:grid-cols-2">
+                <div className="card">
+                   <h4 className="font-semibold mb-4 text-lg">Upload Existing DOCX</h4>
+                   <DocxUploader
+                     onParsed={(title, html) => {
+                        setEditingDoc({ propertyId: uploadTargetProperty || (items[0]?.id || ''), title, content: html })
+                     }}
+                   />
+                </div>
+                <div className="card flex flex-col justify-center items-center text-center p-8 bg-neutral-50 border-dashed">
+                   <FileEdit className="w-12 h-12 text-neutral-400 mb-4" />
+                   <h4 className="font-semibold mb-2 text-lg text-primary">Create Blank Document</h4>
+                   <p className="text-sm text-neutral-600 mb-6 px-4">Start typing from scratch utilizing our rich-text builder to draft contracts or brochures.</p>
+                   {items.length === 0 ? (
+                     <p className="text-sm text-danger font-medium">Please construct a property listing first.</p>
+                   ) : (
+                     <div className="w-full max-w-xs space-y-3 text-left">
+                        <label className="block text-sm font-medium">Link to Property:</label>
+                        <select 
+                           className="w-full rounded-md border border-neutral-300 p-2 text-sm"
+                           value={uploadTargetProperty}
+                           onChange={e => setUploadTargetProperty(e.target.value)}
+                        >
+                           <option value="">-- Select a property --</option>
+                           {items.map(item => (
+                             <option key={item.id} value={item.id}>{item.title}</option>
+                           ))}
+                        </select>
+                        <button
+                           className="btn-primary w-full justify-center"
+                           disabled={!uploadTargetProperty && !items[0]?.id}
+                           onClick={() => {
+                              setEditingDoc({
+                                propertyId: uploadTargetProperty || items[0].id,
+                                title: 'Untitled Document',
+                                content: '<h1>New Document</h1><p>Start typing here...</p>'
+                              })
+                           }}
+                        >
+                           Open Editor
+                        </button>
+                     </div>
+                   )}
+                </div>
+             </div>
+          )}
+
+          {!uploadingDoc && (
+             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+               {documents.length > 0 ? (
+                  documents.map(doc => {
+                     const linkedProperty = items.find(i => i.id === doc.propertyId)
+                     return (
+                        <div key={doc.id} className="card group flex flex-col h-full hover:-translate-y-1 transition-transform">
+                           <div className="flex-1">
+                              <div className="flex justify-between items-start mb-3">
+                                <div className="p-2.5 bg-blue-50 text-blue-700 rounded-lg">
+                                  <FileText className="w-5 h-5" />
+                                </div>
+                                <span className="text-xs font-medium text-neutral-400">
+                                   {new Date(doc.updatedAt || doc.createdAt || '').toLocaleDateString()}
+                                </span>
+                              </div>
+                              <h4 className="font-semibold text-lg text-primary line-clamp-2 leading-tight mb-2">{doc.title}</h4>
+                              <p className="text-xs text-neutral-600 font-medium bg-neutral-100 inline-block px-2 py-1 rounded truncate max-w-full">
+                               Link: {linkedProperty?.title || 'Unknown Property'}
+                              </p>
+                           </div>
+                           <div className="pt-4 mt-4 border-t border-neutral-100 flex items-center justify-between md:opacity-0 group-hover:opacity-100 transition-opacity">
+                              <button 
+                                onClick={() => setEditingDoc(doc)}
+                                className="text-sm font-medium text-primary hover:text-accent-dark flex items-center gap-1"
+                              >
+                                <FileEdit className="w-4 h-4" /> Edit
+                              </button>
+                               <button 
+                                onClick={() => {
+                                  void exportToDocx(doc.content, `${doc.title}.docx`)
+                                }}
+                                className="text-sm font-medium text-neutral-600 hover:text-primary flex items-center gap-1"
+                              >
+                                <Download className="w-4 h-4" /> Export
+                              </button>
+                              <button 
+                                onClick={() => {
+                                   if (confirm('Delete this document?')) {
+                                      deleteDocMutation.mutate(doc.id)
+                                   }
+                                }}
+                                className="text-sm font-medium text-danger hover:text-danger-dark p-1"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </button>
+                           </div>
+                        </div>
+                     )
+                  })
+               ) : (
+                 <div className="md:col-span-2 lg:col-span-3 text-center py-16 bg-white rounded-xl border border-dashed border-neutral-300">
+                    <FileText className="w-12 h-12 text-neutral-300 mx-auto mb-4" />
+                    <h3 className="text-lg font-medium text-primary">No Documents Found</h3>
+                    <p className="text-neutral-500 mt-1 max-w-md mx-auto mb-6">Upload DOCX contracts, brochures, or notes, and link them directly to your real estate listings.</p>
+                    <button className="btn-primary" onClick={() => setUploadingDoc(true)}>Upload First Document</button>
+                 </div>
+               )}
+             </div>
+          )}
+        </section>
+      )}
     </div>
   )
 }

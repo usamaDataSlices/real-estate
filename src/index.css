@@ -1,23 +1,29 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&family=Fraunces:wght@600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,400;0,9..144,600;0,9..144,700;1,9..144,400&display=swap');
 @import "tailwindcss";
 
 @theme {
-  --color-primary: #0F3D3E;
-  --color-primary-light: #1B5E5F;
-  --color-primary-dark: #0A2B2C;
-  --color-accent: #C9A25D;
-  --color-accent-light: #DDBB7E;
-  --color-accent-dark: #A9813F;
-  --color-neutral-50: #FAFAF8;
-  --color-neutral-100: #F2F1ED;
-  --color-neutral-200: #E4E2DB;
-  --color-neutral-600: #6B6B63;
-  --color-neutral-900: #1F1E1B;
-  --color-success: #3D8361;
-  --color-warning: #C9822E;
-  --color-danger: #B23A3A;
-  --font-sans: Inter, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
-  --font-heading: Fraunces, Poppins, ui-sans-serif, system-ui;
+  --color-primary: #0F1A2C; /* Luxury Deep Ink Navy */
+  --color-primary-light: #1F2E47; /* Slate Blue */
+  --color-primary-dark: #070D16; /* Midnight Black */
+  
+  --color-accent: #C5A880; /* Warm Champagne Gold */
+  --color-accent-light: #DFD3C3; /* Ivory Champagne */
+  --color-accent-dark: #9F825B; /* Antique Bronze Gold */
+  
+  --color-neutral-50: #FAF9F6; /* Premium Linen White */
+  --color-neutral-100: #F4F2EE; /* Soft Warm Gray */
+  --color-neutral-200: #E7E4DC; /* Card Border Gray */
+  --color-neutral-300: #D3CEBF; /* Divider Gray */
+  --color-neutral-400: #A8A395; /* Muted Text Label */
+  --color-neutral-600: #6D695F; /* Secondary Text */
+  --color-neutral-900: #1C1B19; /* Charcoal Deep Grey */
+  
+  --color-success: #2C6E49; /* Sage Green */
+  --color-warning: #B87D4B; /* Terracotta Orange */
+  --color-danger: #9B2226; /* Crimson Red */
+  
+  --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
+  --font-heading: 'Fraunces', Georgia, serif;
 }
 
 html,
@@ -31,36 +37,46 @@ body {
   font-family: var(--font-sans);
   background: var(--color-neutral-50);
   color: var(--color-neutral-900);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
+/* Base Layout Classes */
 .container {
-  max-width: 80rem;
+  max-width: 84rem;
   margin-left: auto;
   margin-right: auto;
-  padding-left: 1rem;
-  padding-right: 1rem;
+  padding-left: 1.5rem;
+  padding-right: 1.5rem;
 }
 
+/* Premium Card Styles */
 .card {
-  background: var(--color-neutral-100);
-  border-radius: 1rem;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
-  padding: 1rem;
-  transition: box-shadow 150ms ease;
+  background: #ffffff;
+  border: 1px solid var(--color-neutral-200);
+  border-radius: 1.25rem;
+  box-shadow: 0 4px 20px -8px rgba(28, 27, 25, 0.03), 0 2px 6px -2px rgba(28, 27, 25, 0.02);
+  padding: 1.5rem;
+  transition: all 300ms cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .card:hover {
-  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.08);
+  border-color: var(--color-accent-light);
+  box-shadow: 0 20px 32px -16px rgba(159, 130, 91, 0.08), 0 4px 12px -4px rgba(28, 27, 25, 0.02);
 }
 
+/* Badge classes */
 .badge-success,
 .badge-warning,
 .badge-danger {
   display: inline-flex;
   align-items: center;
-  border-radius: 9999px;
+  border-radius: 0.5rem;
   padding: 0.25rem 0.75rem;
-  font-size: 0.875rem;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
   color: #fff;
 }
 
@@ -68,18 +84,38 @@ body {
 .badge-warning { background: var(--color-warning); }
 .badge-danger { background: var(--color-danger); }
 
+/* Premium Real Estate Buttons */
 .btn-primary {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  border-radius: 0.5rem;
-  padding: 0.5rem 1rem;
-  background: var(--color-accent);
-  color: #fff;
+  border-radius: 0.75rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  padding: 0.75rem 1.5rem;
+  background: var(--color-primary);
+  color: #ffffff;
+  border: 1px solid var(--color-primary);
   text-decoration: none;
+  cursor: pointer;
+  transition: all 250ms cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .btn-primary:hover {
   background: var(--color-accent-dark);
+  border-color: var(--color-accent-dark);
+  box-shadow: 0 8px 16px -8px rgba(159, 130, 91, 0.4);
+  transform: translateY(-1px);
 }
 
+/* Inputs and Forms styling */
+input, select, textarea {
+  transition: all 200ms ease;
+}
+
+input:focus, select:focus, textarea:focus {
+  outline: none;
+  border-color: var(--color-accent) !important;
+  box-shadow: 0 0 0 3px rgba(197, 168, 128, 0.15) !important;
+}
