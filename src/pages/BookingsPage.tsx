@@ -7,14 +7,13 @@ import { bookingRowToBooking, bookingToRow } from '../lib/booking-mappers'
 import { supabase, isSupabaseConfigured } from '../lib/supabase'
 import type { Booking, BookingFormValues } from '../types/booking'
 
+import StatusBanner from '../components/ui/StatusBanner'
+import { makeId } from '../lib/id'
+
 type PanelState =
   | { open: false }
   | { open: true; mode: 'create'; values: BookingFormValues }
   | { open: true; mode: 'edit'; bookingId: string; values: BookingFormValues }
-
-function makeId() {
-  return crypto.randomUUID()
-}
 
 function bookingToFormValues(booking: Booking): BookingFormValues {
   return {
@@ -170,9 +169,7 @@ export default function BookingsPage() {
         </p>
       </section>
 
-      {message ? (
-        <div className="rounded-lg border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-800">{message}</div>
-      ) : null}
+      {message ? <StatusBanner message={message} /> : null}
 
       {loadError ? (
         <div className="rounded-xl border border-danger/20 bg-danger/5 p-6 text-danger">

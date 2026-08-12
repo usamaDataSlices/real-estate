@@ -1,5 +1,8 @@
 import { useMemo, useRef, useState } from 'react'
+import { saveAs } from 'file-saver'
+import { Download, Loader2 } from 'lucide-react'
 import imageCompression from 'browser-image-compression'
+import { makeId } from '../lib/id'
 import { supabase, isSupabaseConfigured } from '../lib/supabase'
 import type { ListingImage } from '../types/listing'
 
@@ -12,10 +15,6 @@ type Props = {
   propertyId?: string
   value: UploadItem[]
   onChange: (next: UploadItem[]) => void
-}
-
-function makeId() {
-  return crypto.randomUUID()
 }
 
 async function fileToPublicUrl(file: File, propertyId: string) {
@@ -42,9 +41,38 @@ async function fileToPublicUrl(file: File, propertyId: string) {
   return { url: data.publicUrl, path }
 }
 
+function extensionFromUrl(url: string) {
+  const clean = url.split('?')[0]
+  const match = clean.match(/\.([a-zA-Z0-9]+)$/)
+  return match?.[1] ?? 'jpg'
+}
+
+async function downloadImage(image: UploadItem, index: number) {
+  const filename = `property-image-${index + 1}.${extensionFromUrl(image.url)}`
+
+  try {
+    const response = await fetch(image.url)
+    if (!response.ok) throw new Error('Download failed')
+    const blob = await response.blob()
+    saveAs(blob, filename)
+    return
+  } catch {
+    const link = document.createElement('a')
+    link.href = image.url
+    link.download = filename
+    link.target = '_blank'
+    link.rel = 'noopener noreferrer'
+    document.body.appendChild(link)
+    link.click()
+    link.remove()
+  }
+}
+
 export default function ImageUploader({ propertyId, value, onChange }: Props) {
   const inputRef = useRef<HTMLInputElement | null>(null)
   const [uploading, setUploading] = useState(false)
+  const [downloadingId, setDownloadingId] = useState<string | null>(null)
+  const [downloadingAll, setDownloadingAll] = useState(false)
   const [progress, setProgress] = useState<string | null>(null)
   const sortedImages = useMemo(() => [...value].sort((a, b) => a.sortOrder - b.sortOrder), [value])
 
@@ -107,21 +135,61 @@ export default function ImageUploader({ propertyId, value, onChange }: Props) {
     onChange(next.map((image, order) => ({ ...image, sortOrder: order })))
   }
 
+  const handleDownload = async (image: UploadItem, index: number) => {
+    setDownloadingId(image.id)
+    setProgress(null)
+    try {
+      await downloadImage(image, index)
+    } catch (error) {
+      setProgress(error instanceof Error ? error.message : 'Download failed.')
+    } finally {
+      setDownloadingId(null)
+    }
+  }
+
+  const handleDownloadAll = async () => {
+    setDownloadingAll(true)
+    setProgress(null)
+    try {
+      for (let index = 0; index < sortedImages.length; index += 1) {
+        await downloadImage(sortedImages[index], index)
+      }
+      setProgress('All images downloaded.')
+    } catch (error) {
+      setProgress(error instanceof Error ? error.message : 'Download failed.')
+    } finally {
+      setDownloadingAll(false)
+    }
+  }
+
   return (
-    <div className="card space-y-4">
-      <div className="flex items-center justify-between gap-4">
+    <div className="space-y-4 rounded-xl border border-neutral-200 bg-neutral-50/50 p-4">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div>
           <h3 className="font-semibold text-neutral-900">Property images</h3>
-          <p className="text-sm text-neutral-600">Drag, upload, reorder, and set a cover photo.</p>
+          <p className="text-sm text-neutral-600">Upload, reorder, download, and set a cover photo.</p>
         </div>
-        <button
-          type="button"
-          className="rounded-md border border-neutral-200 px-3 py-2 text-sm"
-          onClick={() => inputRef.current?.click()}
-          disabled={uploading}
-        >
-          {uploading ? 'Uploading...' : 'Add images'}
-        </button>
+        <div className="flex flex-wrap gap-2">
+          {sortedImages.length > 0 ? (
+            <button
+              type="button"
+              className="inline-flex items-center gap-1.5 rounded-md border border-neutral-200 bg-white px-3 py-2 text-sm"
+              onClick={() => void handleDownloadAll()}
+              disabled={downloadingAll || uploading}
+            >
+              {downloadingAll ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
+              Download all
+            </button>
+          ) : null}
+          <button
+            type="button"
+            className="rounded-md border border-neutral-200 bg-white px-3 py-2 text-sm"
+            onClick={() => inputRef.current?.click()}
+            disabled={uploading || downloadingAll}
+          >
+            {uploading ? 'Uploading...' : 'Add images'}
+          </button>
+        </div>
       </div>
 
       <input
@@ -130,40 +198,74 @@ export default function ImageUploader({ propertyId, value, onChange }: Props) {
         accept="image/*"
         multiple
         hidden
-        onChange={(e) => void addFiles(e.target.files)}
+        onChange={(event) => void addFiles(event.target.files)}
       />
 
       {progress ? <p className="text-sm text-neutral-600">{progress}</p> : null}
 
       {sortedImages.length ? (
-        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-          {sortedImages.map((image) => (
-            <div key={image.id} className="overflow-hidden rounded-xl border border-neutral-200 bg-white">
-              <img src={image.url} alt="Property preview" className="h-48 w-full object-cover" />
-              <div className="space-y-2 p-3">
-                <div className="flex items-center justify-between gap-2">
-                  <button type="button" className="text-sm text-primary" onClick={() => setCover(image.id)}>
-                    {image.isCover ? 'Cover photo' : 'Set cover'}
+        <ul className="space-y-3">
+          {sortedImages.map((image, index) => (
+            <li
+              key={image.id}
+              className="flex flex-col gap-3 rounded-xl border border-neutral-200 bg-white p-3 sm:flex-row sm:items-start"
+            >
+              <img
+                src={image.url}
+                alt={`Property image ${index + 1}`}
+                className="h-36 w-full shrink-0 rounded-lg object-cover sm:h-28 sm:w-36"
+              />
+              <div className="min-w-0 flex-1 space-y-3">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <button type="button" className="text-sm font-medium text-primary" onClick={() => setCover(image.id)}>
+                    {image.isCover ? 'Cover photo' : 'Set as cover'}
                   </button>
-                  <span className="text-xs text-neutral-600">#{image.sortOrder + 1}</span>
+                  <span className="text-xs text-neutral-500">Image {index + 1}</span>
                 </div>
-                <div className="flex items-center gap-2">
-                  <button type="button" className="rounded-md border border-neutral-200 px-2 py-1 text-sm" onClick={() => move(image.id, -1)}>
-                    Up
+                <div className="flex flex-wrap gap-2">
+                  <button
+                    type="button"
+                    className="rounded-md border border-neutral-200 px-3 py-1.5 text-sm"
+                    onClick={() => move(image.id, -1)}
+                    disabled={index === 0}
+                  >
+                    Move up
                   </button>
-                  <button type="button" className="rounded-md border border-neutral-200 px-2 py-1 text-sm" onClick={() => move(image.id, 1)}>
-                    Down
+                  <button
+                    type="button"
+                    className="rounded-md border border-neutral-200 px-3 py-1.5 text-sm"
+                    onClick={() => move(image.id, 1)}
+                    disabled={index === sortedImages.length - 1}
+                  >
+                    Move down
                   </button>
-                  <button type="button" className="rounded-md border border-danger px-2 py-1 text-sm text-danger" onClick={() => void removeImage(image.id)}>
+                  <button
+                    type="button"
+                    className="inline-flex items-center gap-1 rounded-md border border-neutral-200 px-3 py-1.5 text-sm"
+                    onClick={() => void handleDownload(image, index)}
+                    disabled={downloadingId === image.id || downloadingAll}
+                  >
+                    {downloadingId === image.id ? (
+                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                    ) : (
+                      <Download className="h-3.5 w-3.5" />
+                    )}
+                    Download
+                  </button>
+                  <button
+                    type="button"
+                    className="rounded-md border border-danger/30 px-3 py-1.5 text-sm text-danger hover:bg-danger/5"
+                    onClick={() => void removeImage(image.id)}
+                  >
                     Delete
                   </button>
                 </div>
               </div>
-            </div>
+            </li>
           ))}
-        </div>
+        </ul>
       ) : (
-        <div className="rounded-xl border border-dashed border-neutral-200 p-8 text-center text-neutral-600">
+        <div className="rounded-xl border border-dashed border-neutral-200 bg-white p-8 text-center text-neutral-600">
           No images yet.
         </div>
       )}

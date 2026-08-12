@@ -56,7 +56,7 @@ export default function PropertyExcelImporter({ onComplete }: Props) {
         <div className="min-w-0 space-y-1">
           <h3 className="text-lg font-semibold text-primary">Import from Excel</h3>
           <p className="text-sm text-neutral-600">
-            Upload a spreadsheet to create or update listings by title. Drive image links become thumbnails; uploaded storage images are kept.
+            Upload a spreadsheet to create or update listings by title. Add photos manually in the edit form after import.
           </p>
         </div>
       </div>
@@ -96,7 +96,6 @@ export default function PropertyExcelImporter({ onComplete }: Props) {
             <li>Inserted: {summary.inserted}</li>
             <li>Updated: {summary.updated}</li>
             <li>Skipped (empty title): {summary.skipped}</li>
-            <li>Images added: {summary.imagesInserted}</li>
           </ul>
           {summary.failed.length > 0 ? (
             <div className="mt-3 space-y-1">
@@ -115,7 +114,7 @@ export default function PropertyExcelImporter({ onComplete }: Props) {
 
       <p className="text-xs leading-5 text-neutral-500">
         Expected columns: title, description, type, address, city, area, price, rent_frequency, bedrooms, bathrooms, size,
-        amenities, status, bayut_url, external_url, property_finder_url, other_portal_url, image_link_1–4.
+        amenities, status, bayut_url, external_url, property_finder_url, other_portal_url.
         Run migration <code className="text-[11px]">007_properties_title_unique.sql</code> if upsert by title fails.
       </p>
     </div>

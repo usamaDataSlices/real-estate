@@ -8,7 +8,7 @@
     "build": "tsc && vite build",
     "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
     "preview": "vite preview",
-    "import:properties": "node scripts/import-properties.js"
+    "import:properties": "tsx scripts/import-properties-cli.ts"
   },
   "dependencies": {
     "@fullcalendar/core": "6.1.21",
@@ -48,6 +48,7 @@
     "eslint-plugin-react-refresh": "^0.4.6",
     "postcss": "^8.5.26",
     "tailwindcss": "^4.3.3",
+    "tsx": "^4.23.12",
     "typescript": "^5.2.2",
     "vite": "^5.2.0"
   }

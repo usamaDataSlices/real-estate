@@ -1,14 +1,10 @@
+import { Outlet } from 'react-router-dom'
 import { useState } from 'react'
-import type { ReactNode } from 'react'
 import Sidebar from './Sidebar'
 import MobileHeader from './MobileHeader'
 import AppFooter from './AppFooter'
 
-type AppLayoutProps = {
-  children: ReactNode
-}
-
-export default function AppLayout({ children }: AppLayoutProps) {
+export default function AppLayout() {
   const [sidebarOpen, setSidebarOpen] = useState(false)
 
   return (
@@ -19,7 +15,7 @@ export default function AppLayout({ children }: AppLayoutProps) {
         <MobileHeader onMenuClick={() => setSidebarOpen(true)} />
 
         <main className="container flex-1 py-10">
-          {children}
+          <Outlet />
         </main>
 
         <AppFooter />

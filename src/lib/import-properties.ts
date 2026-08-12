@@ -1,9 +1,6 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
 import * as XLSX from 'xlsx'
 
-const DRIVE_FILE_ID_RE = /\/d\/([a-zA-Z0-9_-]+)/
-const IMAGE_COLUMNS = ['image_link_1', 'image_link_2', 'image_link_3', 'image_link_4'] as const
-
 const PORTAL_COLUMNS = [
   { column: 'bayut_url', portal: 'bayut' },
   { column: 'property_finder_url', portal: 'property_finder' },
@@ -14,7 +11,6 @@ export type PropertyImportSummary = {
   inserted: number
   updated: number
   skipped: number
-  imagesInserted: number
   failed: { title: string; error: string }[]
 }
 
@@ -85,16 +81,6 @@ function buildPortalLinks(row: NormalizedRow) {
   return links
 }
 
-function driveThumbnailUrl(rawUrl: unknown) {
-  const url = cellValue(rawUrl)
-  if (!url) return null
-
-  const match = url.match(DRIVE_FILE_ID_RE)
-  if (!match) return null
-
-  return `https://drive.google.com/thumbnail?id=${match[1]}&sz=w1000`
-}
-
 function buildPropertyRow(row: NormalizedRow): PropertyInsertRow | null {
   const title = cellValue(row.title)
   if (!title) return null
@@ -123,21 +109,6 @@ function buildPropertyRow(row: NormalizedRow): PropertyInsertRow | null {
   }
 }
 
-function buildImageRows(propertyId: string, row: NormalizedRow) {
-  return IMAGE_COLUMNS.flatMap((column, sortOrder) => {
-    const thumbnailUrl = driveThumbnailUrl(row[column])
-    if (!thumbnailUrl) return []
-
-    return [{
-      property_id: propertyId,
-      url: thumbnailUrl,
-      sort_order: sortOrder,
-      is_cover: sortOrder === 0,
-      storage_path: null,
-    }]
-  })
-}
-
 export function parsePropertyExcelBuffer(buffer: ArrayBuffer): Record<string, unknown>[] {
   const workbook = XLSX.read(buffer, { type: 'array' })
   const sheetName = workbook.SheetNames[0]
@@ -156,7 +127,6 @@ export async function importPropertiesFromRows(
     inserted: 0,
     updated: 0,
     skipped: 0,
-    imagesInserted: 0,
     failed: [],
   }
 
@@ -178,7 +148,7 @@ export async function importPropertiesFromRows(
 
       if (existingError) throw existingError
 
-      const { data: savedProperty, error: upsertError } = await supabase
+      const { error: upsertError } = await supabase
         .from('properties')
         .upsert(propertyRow, { onConflict: 'title' })
         .select('id')
@@ -188,23 +158,6 @@ export async function importPropertiesFromRows(
 
       if (existing) stats.updated += 1
       else stats.inserted += 1
-
-      const propertyId = savedProperty.id as string
-
-      const { error: deleteImagesError } = await supabase
-        .from('property_images')
-        .delete()
-        .eq('property_id', propertyId)
-        .is('storage_path', null)
-
-      if (deleteImagesError) throw deleteImagesError
-
-      const imageRows = buildImageRows(propertyId, row)
-      if (imageRows.length > 0) {
-        const { error: insertImagesError } = await supabase.from('property_images').insert(imageRows)
-        if (insertImagesError) throw insertImagesError
-        stats.imagesInserted += imageRows.length
-      }
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error)
       stats.failed.push({ title: propertyRow.title, error: message })

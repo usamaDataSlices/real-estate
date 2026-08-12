@@ -1,4 +1,6 @@
+import { LogOut } from 'lucide-react'
 import { mainNavItems } from '../../config/navigation'
+import { useAuth } from '../../contexts/AuthContext'
 import SidebarBrand from './SidebarBrand'
 import SidebarNavItem from './SidebarNavItem'
 
@@ -8,6 +10,8 @@ type SidebarProps = {
 }
 
 export default function Sidebar({ isOpen, onClose }: SidebarProps) {
+  const { user, logout } = useAuth()
+
   return (
     <>
       {isOpen ? (
@@ -36,7 +40,20 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
           ))}
         </nav>
 
-        <div className="border-t border-neutral-200 px-4 py-4">
+        <div className="space-y-3 border-t border-neutral-200 px-4 py-4">
+          {user?.email ? (
+            <div className="space-y-2">
+              <p className="truncate text-xs text-neutral-600">{user.email}</p>
+              <button
+                type="button"
+                className="flex w-full items-center gap-2 rounded-lg border border-neutral-200 px-3 py-2 text-sm font-medium text-neutral-700 hover:bg-neutral-50"
+                onClick={() => void logout()}
+              >
+                <LogOut className="h-4 w-4" />
+                Sign out
+              </button>
+            </div>
+          ) : null}
           <p className="text-xs leading-relaxed text-neutral-500">
             Licensed Real Estate Brokerage. Regulated by RERA #12847.
           </p>

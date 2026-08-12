@@ -2,8 +2,8 @@ import { useMemo, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import ListingTable from '../components/ListingTable'
 import ListingFilters from '../components/ListingFilters'
-import { supabase, isSupabaseConfigured } from '../lib/supabase'
-import { propertyRowToListing } from '../lib/listing-mappers'
+import { fetchListingsWithImages } from '../lib/listings-api'
+import { isSupabaseConfigured } from '../lib/supabase'
 
 type Filters = {
   search: string
@@ -28,37 +28,8 @@ export default function PublicListings() {
 
   const { data: remoteListings, isLoading, error } = useQuery({
     queryKey: ['public-listings'],
-    queryFn: async () => {
-      if (!isSupabaseConfigured) return []
-
-      const { data: properties, error: propertiesError } = await supabase
-        .from('properties')
-        .select('id,title,description,type,address,city,area,price,rent_frequency,bedrooms,bathrooms,size,amenities,status,portal_links,bayut_url,external_url,created_at')
-        .eq('status', 'published')
-        .order('created_at', { ascending: false })
-
-      if (propertiesError) throw propertiesError
-
-      const propertyIds = (properties ?? []).map((property) => property.id)
-      if (propertyIds.length === 0) return []
-
-      const { data: images, error: imagesError } = await supabase
-        .from('property_images')
-        .select('id,property_id,url,storage_path,sort_order,is_cover')
-        .in('property_id', propertyIds)
-        .order('sort_order', { ascending: true })
-
-      if (imagesError) throw imagesError
-
-      const groupedImages = new Map<string, typeof images>()
-      for (const image of images ?? []) {
-        const current = groupedImages.get(image.property_id) ?? []
-        current.push(image)
-        groupedImages.set(image.property_id, current)
-      }
-
-      return (properties ?? []).map((property) => propertyRowToListing(property, groupedImages.get(property.id) ?? []))
-    },
+    queryFn: () => fetchListingsWithImages({ publishedOnly: true }),
+    enabled: isSupabaseConfigured,
   })
 
   const listings = useMemo(() => {
@@ -86,13 +57,11 @@ export default function PublicListings() {
 
   return (
     <div className="space-y-12">
-      {/* Hero Banner Section */}
       <section className="relative overflow-hidden rounded-3xl bg-neutral-900 py-24 px-6 sm:px-12 text-center shadow-xl">
-        {/* Background Image with Dark Overlay */}
         <div className="absolute inset-0 pointer-events-none">
-          <img 
-            src="https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?auto=format&fit=crop&w=1600&q=80" 
-            alt="Luxury Villa Background" 
+          <img
+            src="https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?auto=format&fit=crop&w=1600&q=80"
+            alt="Luxury Villa Background"
             className="h-full w-full object-cover opacity-45 scale-105"
           />
           <div className="absolute inset-0 bg-gradient-to-t from-neutral-950/80 via-neutral-950/40 to-neutral-950/60" />
@@ -111,7 +80,6 @@ export default function PublicListings() {
         </div>
       </section>
 
-      {/* Main Listings Section */}
       <div className="space-y-6">
         <div className="flex flex-col gap-2">
           <h2 className="text-2xl font-bold font-heading text-neutral-900 border-l-4 border-accent pl-3">
@@ -127,10 +95,6 @@ export default function PublicListings() {
         {isLoading ? (
           <div className="flex justify-center py-12">
             <div className="flex items-center gap-3 rounded-2xl bg-white px-6 py-4 shadow-sm border border-neutral-200/50">
-              <svg className="animate-spin h-5 w-5 text-accent-dark" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-              </svg>
               <span className="text-neutral-600 font-medium">Curating properties...</span>
             </div>
           </div>
@@ -151,10 +115,7 @@ export default function PublicListings() {
           </div>
         ) : !isLoading && !error ? (
           <div className="rounded-2xl border border-neutral-200/60 bg-white p-12 text-center shadow-xs">
-            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1} stroke="currentColor" className="mx-auto h-12 w-12 text-neutral-300">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 21v-4.875c0-.621.504-1.125 1.125-1.125h5.25c.621 0 1.125.504 1.125 1.125V21m0 0h4.5V3.545M12.75 21h7.5V10.75M2.25 21h1.5m18 0h-18M2.25 9l4.5-1.636M18.75 3l-1.5.545m0 6.205l3-1.091V21M1.2 9l4.243-1.657a2.185 2.185 0 0 1 2.529 1.123L10 13.382V21" />
-            </svg>
-            <p className="mt-4 font-semibold text-neutral-800">No properties matching filters</p>
+            <p className="font-semibold text-neutral-800">No properties matching filters</p>
             <p className="mt-1 text-sm text-neutral-600">Try adjusting your pricing limits or location criteria.</p>
           </div>
         ) : null}

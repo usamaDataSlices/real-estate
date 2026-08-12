@@ -12,6 +12,20 @@ export async function ensureAdminProfile(userId: string, email?: string | null) 
   }
 }
 
+export async function signIn(email: string, password: string) {
+  const { data, error } = await supabase.auth.signInWithPassword({ email, password })
+  if (error) throw error
+  if (data.user) {
+    await ensureAdminProfile(data.user.id, data.user.email)
+  }
+  return data
+}
+
+export async function signOut() {
+  const { error } = await supabase.auth.signOut()
+  if (error) throw error
+}
+
 export async function requireAuthSession() {
   const { data, error } = await supabase.auth.getSession()
   if (error) throw error
