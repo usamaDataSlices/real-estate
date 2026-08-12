@@ -9,6 +9,7 @@ import { ensureAdminProfile, requireAuthSession } from '../lib/auth'
 import DocxUploader from '../components/DocxUploader'
 import DocxEditor from '../components/DocxEditor'
 import ConfirmModal from '../components/ConfirmModal'
+import PropertyExcelImporter from '../components/PropertyExcelImporter'
 import { exportToDocx } from '../lib/export-docx'
 import { FileText, Plus, FileEdit, Trash2, Home, Download, Loader2 } from 'lucide-react'
 
@@ -491,6 +492,18 @@ export default function AdminDashboard() {
       {activeTab === 'listings' && (
         <section className="grid gap-8 xl:grid-cols-[1fr_420px]">
           <div className="space-y-4">
+            <PropertyExcelImporter
+              onComplete={(summary) => {
+                void queryClient.invalidateQueries({ queryKey: ['admin-listings'] })
+                const failed = summary.failed.length
+                setMessage(
+                  failed > 0
+                    ? `Import finished with ${failed} failed row(s).`
+                    : `Import complete: ${summary.inserted} inserted, ${summary.updated} updated.`,
+                )
+              }}
+            />
+
             <div className="flex items-center justify-between">
               <div className="flex gap-3">
                 <div className="rounded-lg bg-neutral-100 px-3 py-1.5 text-xs font-semibold text-neutral-700">Total: {counts.total}</div>

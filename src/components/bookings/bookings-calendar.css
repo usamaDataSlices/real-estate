@@ -1,0 +1,183 @@
+.bookings-calendar .fc {
+  --fc-border-color: var(--color-neutral-200);
+  --fc-page-bg-color: #fff;
+  --fc-neutral-bg-color: var(--color-neutral-100);
+  --fc-today-bg-color: rgba(197, 168, 128, 0.12);
+  --fc-event-border-color: transparent;
+  font-family: var(--font-sans);
+  font-size: 0.875rem;
+}
+
+.bookings-calendar .fc .fc-toolbar-title {
+  font-family: var(--font-heading);
+  font-size: 1.25rem;
+  color: var(--color-primary);
+}
+
+.bookings-calendar .fc .fc-button {
+  background: var(--color-primary);
+  border-color: var(--color-primary);
+  text-transform: capitalize;
+  font-weight: 600;
+}
+
+.bookings-calendar .fc .fc-button:hover,
+.bookings-calendar .fc .fc-button-active {
+  background: var(--color-primary-light);
+  border-color: var(--color-primary-light);
+}
+
+.bookings-calendar .fc .fc-resource-timeline-divider {
+  background: var(--color-neutral-200);
+}
+
+.bookings-calendar .fc .fc-datagrid-cell-main {
+  font-weight: 600;
+  color: var(--color-neutral-900);
+}
+
+.bookings-calendar .fc .fc-event {
+  border-radius: 0.375rem;
+  padding: 0.125rem 0.375rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.bookings-calendar .fc .fc-event.booking-pending {
+  background: var(--color-warning);
+}
+
+.bookings-calendar .fc .fc-event.booking-confirmed {
+  background: var(--color-success);
+}
+
+.bookings-calendar .fc .fc-event.booking-cancelled {
+  background: var(--color-neutral-400);
+}
+
+.bookings-calendar .fc .fc-event.booking-completed {
+  background: var(--color-primary-light);
+}
+
+.bookings-calendar .fc .fc-highlight {
+  background: rgba(197, 168, 128, 0.25);
+}
+
+.bookings-calendar-toolbar .bookings-calendar-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.375rem;
+  min-height: 2.25rem;
+  border-radius: 0.5rem;
+  border: 1px solid var(--color-primary);
+  background: var(--color-primary);
+  color: #fff;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  line-height: 1;
+  transition: background-color 150ms ease, border-color 150ms ease;
+}
+
+.bookings-calendar-toolbar .bookings-calendar-btn:hover {
+  background: var(--color-primary-light);
+  border-color: var(--color-primary-light);
+}
+
+.booking-legend-swatch {
+  width: 0.875rem;
+  height: 0.875rem;
+  border-radius: 0.25rem;
+  flex-shrink: 0;
+}
+
+.booking-legend-pending {
+  background: var(--color-warning);
+}
+
+.booking-legend-confirmed {
+  background: var(--color-success);
+}
+
+.booking-legend-cancelled {
+  background: var(--color-neutral-400);
+}
+
+.booking-legend-completed {
+  background: var(--color-primary-light);
+}
+
+.bookings-calendar .fc .fc-datagrid-header {
+  display: none;
+}
+
+/* Date column headers — month row on top, day + weekday stacked in each cell */
+.bookings-calendar .fc .fc-timeline-header-row .fc-timeline-slot-frame {
+  min-height: 3.5rem;
+}
+
+.bookings-calendar .fc .fc-timeline-header-row:first-child .fc-timeline-slot-frame {
+  min-height: 2.25rem;
+}
+
+.bookings-calendar .fc .fc-timeline-slot-cushion {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  padding: 0.25rem;
+}
+
+.bookings-calendar .fc .fc-timeline-header-row:first-child .fc-timeline-slot-cushion {
+  font-family: var(--font-heading);
+  font-size: 0.875rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  text-transform: capitalize;
+  color: var(--color-primary);
+}
+
+.bookings-calendar .booking-day-header {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.2rem;
+  width: 100%;
+  min-height: 3rem;
+  padding: 0.375rem 0.125rem;
+  text-align: center;
+}
+
+.bookings-calendar .booking-day-header-num {
+  font-size: 1.125rem;
+  font-weight: 700;
+  line-height: 1;
+  color: var(--color-primary);
+}
+
+.bookings-calendar .booking-day-header-name {
+  font-size: 0.6875rem;
+  font-weight: 600;
+  line-height: 1.15;
+  color: var(--color-neutral-600);
+}
+
+.bookings-calendar .fc .fc-timeline-slot.fc-day-today .booking-day-header-num {
+  color: var(--color-accent-dark);
+}
+
+.bookings-calendar .fc .fc-timeline-slot.fc-day-today .booking-day-header-name {
+  color: var(--color-accent-dark);
+  opacity: 0.85;
+}
+
+.bookings-calendar .fc .fc-timeline-slot.fc-day-today {
+  background: rgba(197, 168, 128, 0.15);
+}
+
+/* Hide any sub-day time header cells if FC tries to render them */
+.bookings-calendar .fc .fc-timeline-slot-label[data-date*="T"]:not([data-date$="T00:00:00"]) {
+  display: none;
+}
