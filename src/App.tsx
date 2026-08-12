@@ -8,6 +8,7 @@ import PublicListings from './pages/PublicListings'
 import AdminDashboard from './pages/AdminDashboard'
 import PropertyDetailPage from './pages/PropertyDetailPage'
 import BookingsPage from './pages/BookingsPage'
+import NotesPage from './pages/NotesPage'
 import './App.css'
 
 const queryClient = new QueryClient()
@@ -24,6 +25,7 @@ export default function App() {
                 <Route path="/" element={<PublicListings />} />
                 <Route path="/property/:id" element={<PropertyDetailPage />} />
                 <Route path="/bookings" element={<BookingsPage />} />
+                <Route path="/notes" element={<NotesPage />} />
                 <Route path="/admin/*" element={<AdminDashboard />} />
               </Route>
             </Route>

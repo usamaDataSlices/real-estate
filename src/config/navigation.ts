@@ -1,4 +1,4 @@
-import { Building2, CalendarDays, Home, Shield } from 'lucide-react'
+import { Building2, CalendarDays, Home, Shield, StickyNote } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 
 export type NavItem = {
@@ -19,6 +19,11 @@ export const mainNavItems: NavItem[] = [
     label: 'Bookings',
     to: '/bookings',
     icon: CalendarDays,
+  },
+  {
+    label: 'Notes',
+    to: '/notes',
+    icon: StickyNote,
   },
   {
     label: 'Admin Portal',
