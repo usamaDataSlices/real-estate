@@ -18,7 +18,7 @@ export function noteMatchesSearch(note: Note, parsed: ParsedNoteSearch): boolean
   if (!query) return true
 
   const title = note.title.toLowerCase()
-  const body = note.body.toLowerCase()
+  const body = note.contentPlain.toLowerCase()
   const haystack = `${title}\n${body}`
   const needle = query.toLowerCase()
 

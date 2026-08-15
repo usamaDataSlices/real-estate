@@ -8,7 +8,8 @@
     "build": "tsc && vite build",
     "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
     "preview": "vite preview",
-    "import:properties": "tsx scripts/import-properties-cli.ts"
+    "import:properties": "tsx scripts/import-properties-cli.ts",
+    "migrate:notes": "tsx scripts/migrate-notes-to-tiptap.ts"
   },
   "dependencies": {
     "@fullcalendar/core": "6.1.21",
@@ -20,6 +21,13 @@
     "@hookform/resolvers": "^5.7.1",
     "@supabase/supabase-js": "^2.112.3",
     "@tanstack/react-query": "^5.101.4",
+    "@tiptap/extension-image": "^3.30.1",
+    "@tiptap/extension-link": "^3.30.1",
+    "@tiptap/extension-placeholder": "^3.30.1",
+    "@tiptap/extension-underline": "^3.30.1",
+    "@tiptap/pm": "^3.30.1",
+    "@tiptap/react": "^3.30.1",
+    "@tiptap/starter-kit": "^3.30.1",
     "browser-image-compression": "^2.0.2",
     "dompurify": "^3.1.5",
     "dotenv": "^17.4.2",

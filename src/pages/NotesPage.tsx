@@ -1,17 +1,22 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { Loader2, Plus, Search, StickyNote, Trash2 } from 'lucide-react'
+import { Loader2, Plus, Search, StickyNote } from 'lucide-react'
 import ConfirmModal from '../components/ConfirmModal'
+import NoteEditorPanel from '../components/notes/NoteEditorPanel'
 import StatusBanner from '../components/ui/StatusBanner'
-import { deleteNote, fetchNotes, upsertNote } from '../lib/notes-api'
+import { useAuth } from '../contexts/AuthContext'
+import { makeId } from '../lib/id'
 import { escapeRegExp, noteMatchesSearch, parseNoteSearch } from '../lib/note-search'
+import { collectNoteImageStoragePaths } from '../lib/tiptap/note-content'
+import { noteDebug } from '../lib/notes-debug'
+import { deleteNote, fetchNotes, searchNotesServer } from '../lib/notes-api'
 import { isSupabaseConfigured } from '../lib/supabase'
 import type { Note } from '../types/note'
 
-type EditorState =
-  | { mode: 'idle' }
-  | { mode: 'create'; title: string; body: string }
-  | { mode: 'edit'; noteId: string; title: string; body: string }
+type ActiveEditor = {
+  noteId: string
+  isNew: boolean
+}
 
 function HighlightedText({ text, terms }: { text: string; terms: string[] }) {
   const activeTerms = terms.map((term) => term.trim()).filter(Boolean)
@@ -35,36 +40,41 @@ function HighlightedText({ text, terms }: { text: string; terms: string[] }) {
   )
 }
 
-function notePreview(body: string) {
-  const line = body.trim().split('\n').find(Boolean) ?? ''
+function notePreview(note: Note) {
+  const line = note.contentPlain.trim().split('\n').find(Boolean) ?? ''
   return line.length > 120 ? `${line.slice(0, 120)}…` : line || 'No content yet.'
 }
 
 export default function NotesPage() {
   const queryClient = useQueryClient()
+  const { user } = useAuth()
   const [search, setSearch] = useState('')
+  const [debouncedSearch, setDebouncedSearch] = useState('')
   const [selectedId, setSelectedId] = useState<string | null>(null)
-  const [editor, setEditor] = useState<EditorState>({ mode: 'idle' })
+  const [activeEditor, setActiveEditor] = useState<ActiveEditor | null>(null)
   const [deleteTarget, setDeleteTarget] = useState<Note | null>(null)
   const [message, setMessage] = useState<string | null>(null)
 
+  useEffect(() => {
+    const timer = setTimeout(() => setDebouncedSearch(search), 300)
+    return () => clearTimeout(timer)
+  }, [search])
+
+  const parsedSearch = useMemo(() => parseNoteSearch(debouncedSearch), [debouncedSearch])
+
   const notesQuery = useQuery({
-    queryKey: ['notes'],
-    queryFn: fetchNotes,
+    queryKey: ['notes', debouncedSearch.trim()],
+    queryFn: () =>
+      debouncedSearch.trim()
+        ? searchNotesServer(parsedSearch.query, parsedSearch.exact)
+        : fetchNotes(),
     enabled: isSupabaseConfigured,
   })
 
   const notes = notesQuery.data ?? []
-  const parsedSearch = useMemo(() => parseNoteSearch(search), [search])
-
   const filteredNotes = useMemo(
     () => notes.filter((note) => noteMatchesSearch(note, parsedSearch)),
     [notes, parsedSearch],
-  )
-
-  const selectedNote = useMemo(
-    () => notes.find((note) => note.id === selectedId) ?? null,
-    [notes, selectedId],
   )
 
   useEffect(() => {
@@ -78,25 +88,12 @@ export default function NotesPage() {
     }
   }, [parsedSearch.query, filteredNotes, selectedId])
 
-  const saveMutation = useMutation({
-    mutationFn: upsertNote,
-    onSuccess: async (noteId) => {
-      await queryClient.invalidateQueries({ queryKey: ['notes'] })
-      setSelectedId(noteId)
-      setEditor({ mode: 'idle' })
-      setMessage('Note saved.')
-    },
-    onError: (error) => {
-      setMessage(error instanceof Error ? error.message : 'Save failed.')
-    },
-  })
-
   const deleteMutation = useMutation({
     mutationFn: deleteNote,
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: ['notes'] })
       setSelectedId(null)
-      setEditor({ mode: 'idle' })
+      setActiveEditor(null)
       setDeleteTarget(null)
       setMessage('Note deleted.')
     },
@@ -107,35 +104,50 @@ export default function NotesPage() {
 
   const startCreate = () => {
     setMessage(null)
-    setSelectedId(null)
-    setEditor({ mode: 'create', title: '', body: '' })
+    const noteId = makeId()
+    setSelectedId(noteId)
+    setActiveEditor({ noteId, isNew: true })
   }
 
-  const startEdit = (note: Note) => {
+  const openNote = (noteId: string) => {
     setMessage(null)
-    setSelectedId(note.id)
-    setEditor({ mode: 'edit', noteId: note.id, title: note.title, body: note.body })
+    setSelectedId(noteId)
+    setActiveEditor({ noteId, isNew: false })
   }
 
-  const cancelEditor = () => {
-    setEditor({ mode: 'idle' })
+  const closeEditor = () => {
+    setActiveEditor(null)
   }
 
-  const saveEditor = () => {
-    if (editor.mode === 'idle') return
-    void saveMutation.mutateAsync({
-      id: editor.mode === 'edit' ? editor.noteId : undefined,
-      title: editor.title,
-      body: editor.body,
-    })
-  }
-
-  const viewingNote = editor.mode === 'idle' ? selectedNote : null
   const highlightTerms = parsedSearch.query
     ? parsedSearch.exact
       ? [parsedSearch.query]
       : parsedSearch.query.split(/\s+/).filter(Boolean)
     : []
+
+  const patchNotesListCache = (savedNote: {
+    id: string
+    title: string
+    contentPlain: string
+    updatedAt: string
+  }) => {
+    queryClient.setQueriesData<Note[]>({ queryKey: ['notes'] }, (old) => {
+      if (!old) return old
+      const listItem: Note = {
+        id: savedNote.id,
+        title: savedNote.title,
+        contentPlain: savedNote.contentPlain,
+        contentJson: { type: 'doc', content: [] },
+        updatedAt: savedNote.updatedAt,
+      }
+      const index = old.findIndex((note) => note.id === savedNote.id)
+      if (index === -1) return [listItem, ...old]
+      const next = [...old]
+      next[index] = { ...next[index], ...listItem }
+      next.sort((a, b) => new Date(b.updatedAt || 0).getTime() - new Date(a.updatedAt || 0).getTime())
+      return next
+    })
+  }
 
   return (
     <div className="space-y-6">
@@ -143,7 +155,7 @@ export default function NotesPage() {
         <div>
           <p className="mb-1 text-xs font-medium uppercase tracking-[0.2em] text-accent-dark">Workspace</p>
           <h1 className="text-3xl font-heading font-semibold text-primary">Notes</h1>
-          <p className="mt-1 text-sm text-neutral-600">Create, search, and manage broker notes.</p>
+          <p className="mt-1 text-sm text-neutral-600">Rich-text notes with attachments and full-text search.</p>
         </div>
         <button type="button" className="btn-primary inline-flex items-center gap-2" onClick={startCreate}>
           <Plus className="h-4 w-4" />
@@ -156,6 +168,10 @@ export default function NotesPage() {
       {!isSupabaseConfigured ? (
         <div className="rounded-xl border border-dashed border-neutral-300 bg-white p-8 text-center text-neutral-600">
           Set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY to use notes.
+        </div>
+      ) : !user ? (
+        <div className="rounded-xl border border-dashed border-neutral-300 bg-white p-8 text-center text-neutral-600">
+          Sign in to create and edit notes.
         </div>
       ) : (
         <>
@@ -170,7 +186,7 @@ export default function NotesPage() {
                 type="search"
                 value={search}
                 onChange={(event) => setSearch(event.target.value)}
-                placeholder='Search title or body… use "exact phrase" for precise matches'
+                placeholder='Search title or content… use "exact phrase" for precise matches'
                 className="w-full rounded-lg border border-neutral-300 py-2.5 pl-10 pr-4 text-sm outline-none ring-primary/20 focus:border-primary focus:ring-2"
               />
             </div>
@@ -204,10 +220,7 @@ export default function NotesPage() {
                       <li key={note.id}>
                         <button
                           type="button"
-                          onClick={() => {
-                            setSelectedId(note.id)
-                            setEditor({ mode: 'idle' })
-                          }}
+                          onClick={() => openNote(note.id)}
                           className={`w-full px-4 py-3 text-left transition-colors hover:bg-neutral-50 ${
                             isSelected ? 'bg-primary/5 ring-1 ring-inset ring-primary/20' : ''
                           }`}
@@ -216,7 +229,7 @@ export default function NotesPage() {
                             <HighlightedText text={note.title} terms={highlightTerms} />
                           </p>
                           <p className="mt-1 line-clamp-2 text-sm text-neutral-600">
-                            <HighlightedText text={notePreview(note.body)} terms={highlightTerms} />
+                            <HighlightedText text={notePreview(note)} terms={highlightTerms} />
                           </p>
                           <p className="mt-2 text-xs text-neutral-400">
                             Updated {new Date(note.updatedAt || note.createdAt || '').toLocaleString()}
@@ -237,70 +250,38 @@ export default function NotesPage() {
             </section>
 
             <section className="rounded-xl border border-neutral-200 bg-white shadow-sm">
-              {editor.mode !== 'idle' ? (
-                <div className="flex h-full flex-col p-6">
-                  <div className="mb-4 flex items-center justify-between gap-3">
-                    <h2 className="text-lg font-semibold text-primary">
-                      {editor.mode === 'create' ? 'New note' : 'Edit note'}
-                    </h2>
-                    <div className="flex gap-2">
-                      <button type="button" className="rounded-md border border-neutral-200 px-3 py-1.5 text-sm" onClick={cancelEditor}>
-                        Cancel
-                      </button>
-                      <button
-                        type="button"
-                        className="btn-primary px-3 py-1.5 text-sm"
-                        onClick={saveEditor}
-                        disabled={saveMutation.isPending || !editor.title.trim()}
-                      >
-                        {saveMutation.isPending ? 'Saving…' : 'Save'}
-                      </button>
-                    </div>
-                  </div>
-                  <input
-                    type="text"
-                    value={editor.title}
-                    onChange={(event) => setEditor((current) => (current.mode === 'idle' ? current : { ...current, title: event.target.value }))}
-                    placeholder="Note title"
-                    className="mb-4 w-full rounded-lg border border-neutral-300 px-3 py-2 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
-                  />
-                  <textarea
-                    value={editor.body}
-                    onChange={(event) => setEditor((current) => (current.mode === 'idle' ? current : { ...current, body: event.target.value }))}
-                    placeholder="Write your note here…"
-                    rows={16}
-                    className="min-h-[320px] w-full flex-1 resize-y rounded-lg border border-neutral-300 px-3 py-2 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
-                  />
-                </div>
-              ) : viewingNote ? (
-                <div className="flex h-full flex-col p-6">
-                  <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
-                    <div>
-                      <h2 className="text-2xl font-semibold text-primary">
-                        <HighlightedText text={viewingNote.title} terms={highlightTerms} />
-                      </h2>
-                      <p className="mt-1 text-xs text-neutral-500">
-                        Updated {new Date(viewingNote.updatedAt || viewingNote.createdAt || '').toLocaleString()}
-                      </p>
-                    </div>
-                    <div className="flex gap-2">
-                      <button type="button" className="rounded-md border border-neutral-200 px-3 py-1.5 text-sm" onClick={() => startEdit(viewingNote)}>
-                        Edit
-                      </button>
-                      <button
-                        type="button"
-                        className="inline-flex items-center gap-1 rounded-md border border-danger/30 px-3 py-1.5 text-sm text-danger hover:bg-danger/5"
-                        onClick={() => setDeleteTarget(viewingNote)}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                        Delete
-                      </button>
-                    </div>
-                  </div>
-                  <div className="min-h-[320px] flex-1 whitespace-pre-wrap rounded-lg bg-neutral-50 p-4 text-sm leading-7 text-neutral-800">
-                    <HighlightedText text={viewingNote.body || 'No content.'} terms={highlightTerms} />
-                  </div>
-                </div>
+              {activeEditor ? (
+                <NoteEditorPanel
+                  key={activeEditor.noteId}
+                  noteId={activeEditor.noteId}
+                  userId={user.id}
+                  isNew={activeEditor.isNew}
+                  onSaved={(savedNote) => {
+                    noteDebug('cache:setQueryData', {
+                      noteId: savedNote.id,
+                      storagePaths: collectNoteImageStoragePaths(savedNote.contentJson),
+                    })
+                    queryClient.setQueryData(['note', savedNote.id], savedNote)
+                    patchNotesListCache(savedNote)
+                    if (activeEditor.isNew) {
+                      setActiveEditor({ noteId: savedNote.id, isNew: false })
+                    }
+                  }}
+                  onDelete={() => {
+                    const target = filteredNotes.find((note) => note.id === activeEditor.noteId)
+                    if (target) setDeleteTarget(target)
+                    else {
+                      setDeleteTarget({
+                        id: activeEditor.noteId,
+                        title: 'Untitled note',
+                        contentJson: { type: 'doc', content: [] },
+                        contentPlain: '',
+                      })
+                    }
+                  }}
+                  onClose={closeEditor}
+                  onError={setMessage}
+                />
               ) : (
                 <div className="flex min-h-[420px] flex-col items-center justify-center p-8 text-center">
                   <StickyNote className="mb-4 h-12 w-12 text-neutral-300" />
@@ -325,7 +306,15 @@ export default function NotesPage() {
           if (!deleteMutation.isPending) setDeleteTarget(null)
         }}
         onConfirm={() => {
-          if (deleteTarget) deleteMutation.mutate(deleteTarget.id)
+          if (!deleteTarget) return
+          const exists = notes.some((note) => note.id === deleteTarget.id)
+          if (!exists) {
+            setActiveEditor(null)
+            setSelectedId(null)
+            setDeleteTarget(null)
+            return
+          }
+          deleteMutation.mutate(deleteTarget.id)
         }}
       />
     </div>
