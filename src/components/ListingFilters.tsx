@@ -14,7 +14,7 @@ type Props = {
 
 export default function ListingFilters({ value, onChange }: Props) {
   return (
-    <section className="card grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 p-6 bg-white border border-neutral-200/60 shadow-[0_4px_18px_-8px_rgba(0,0,0,0.05)] rounded-2xl">
+    <section className="card grid gap-3 rounded-2xl border border-neutral-200/60 bg-white p-4 shadow-[0_4px_18px_-8px_rgba(0,0,0,0.05)] md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
       {/* Search Input */}
       <div className="relative">
         <span className="absolute inset-y-0 left-3 flex items-center pointer-events-none text-neutral-600">

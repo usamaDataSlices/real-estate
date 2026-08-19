@@ -194,11 +194,11 @@ export default function CredentialsPage() {
   const viewing = editor.mode === 'idle' ? selectedCredential : null
 
   return (
-    <div className="space-y-6">
-      <section className="flex flex-col gap-4 rounded-xl border border-neutral-200 bg-white p-6 shadow-sm md:flex-row md:items-center md:justify-between">
+    <div className="space-y-4">
+      <section className="flex flex-col gap-3 rounded-xl border border-neutral-200 bg-white p-4 shadow-sm md:flex-row md:items-center md:justify-between">
         <div>
           <p className="mb-1 text-xs font-medium uppercase tracking-[0.2em] text-accent-dark">Workspace</p>
-          <h1 className="text-3xl font-heading font-semibold text-primary">Credentials</h1>
+          <h1 className="text-2xl font-heading font-semibold text-primary">Credentials</h1>
           <p className="mt-1 text-sm text-neutral-600">Store portal logins, API keys, and other secure access details.</p>
         </div>
         <button type="button" className="btn-primary inline-flex items-center gap-2" onClick={openCreateModal}>
@@ -215,7 +215,7 @@ export default function CredentialsPage() {
         </div>
       ) : (
         <>
-          <div className="grid gap-6 lg:grid-cols-[minmax(300px,380px)_1fr]">
+          <div className="grid gap-4 lg:grid-cols-[minmax(280px,340px)_1fr]">
             <section className="flex flex-col overflow-hidden rounded-xl border border-neutral-200 bg-white shadow-sm">
               <div className="border-b border-neutral-200 bg-neutral-50 px-3 py-2.5">
                 <div className="flex items-center justify-between gap-2">
@@ -279,7 +279,7 @@ export default function CredentialsPage() {
 
             <section className="rounded-xl border border-neutral-200 bg-white shadow-sm">
               {editor.mode === 'edit' ? (
-                <div className="flex h-full flex-col p-6">
+                <div className="flex h-full flex-col p-4">
                   <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
                     <h2 className="text-lg font-semibold text-primary">Edit credential</h2>
                     <div className="flex gap-2">
@@ -310,7 +310,7 @@ export default function CredentialsPage() {
                   />
                 </div>
               ) : viewing ? (
-                <div className="flex h-full flex-col p-6">
+                <div className="flex h-full flex-col p-4">
                   <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
                     <div>
                       <p className="font-mono text-xs font-semibold text-neutral-500">{credentialKey(viewing.id)}</p>
@@ -340,8 +340,8 @@ export default function CredentialsPage() {
                     </div>
                   </div>
 
-                  <dl className="space-y-4">
-                    <div className="rounded-lg border border-neutral-200 bg-neutral-50 p-4">
+                  <dl className="space-y-3">
+                    <div className="rounded-lg border border-neutral-200 bg-neutral-50 p-3">
                       <dt className="text-xs font-semibold uppercase tracking-wide text-neutral-500">Username</dt>
                       <dd className="mt-1 flex items-center justify-between gap-3">
                         <span className="break-all text-sm text-neutral-900">{viewing.username || '—'}</span>
@@ -358,7 +358,7 @@ export default function CredentialsPage() {
                       </dd>
                     </div>
 
-                    <div className="rounded-lg border border-neutral-200 bg-neutral-50 p-4">
+                    <div className="rounded-lg border border-neutral-200 bg-neutral-50 p-3">
                       <dt className="text-xs font-semibold uppercase tracking-wide text-neutral-500">Password</dt>
                       <dd className="mt-1 flex items-center justify-between gap-3">
                         <span className="break-all font-mono text-sm text-neutral-900">
@@ -388,7 +388,7 @@ export default function CredentialsPage() {
                     </div>
 
                     {viewing.url ? (
-                      <div className="rounded-lg border border-neutral-200 bg-neutral-50 p-4">
+                      <div className="rounded-lg border border-neutral-200 bg-neutral-50 p-3">
                         <dt className="text-xs font-semibold uppercase tracking-wide text-neutral-500">URL</dt>
                         <dd className="mt-1">
                           <a
@@ -404,7 +404,7 @@ export default function CredentialsPage() {
                     ) : null}
 
                     {viewing.notes ? (
-                      <div className="rounded-lg border border-neutral-200 bg-neutral-50 p-4">
+                      <div className="rounded-lg border border-neutral-200 bg-neutral-50 p-3">
                         <dt className="text-xs font-semibold uppercase tracking-wide text-neutral-500">Notes</dt>
                         <dd className="mt-1 whitespace-pre-wrap text-sm text-neutral-800">
                           <HighlightedText text={viewing.notes} terms={highlightTerms} />

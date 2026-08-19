@@ -263,7 +263,7 @@ export default function TicketsPage() {
             )}
           </section>
 
-          <section className="min-h-[480px] overflow-hidden rounded-xl border border-neutral-200 bg-white shadow-sm">
+          <section className="min-h-80 overflow-hidden rounded-xl border border-neutral-200 bg-white shadow-sm">
             {selectedTicket ? (
               <TicketDetailPanel
                 ticket={selectedTicket}
@@ -287,7 +287,7 @@ export default function TicketsPage() {
                 onAttachmentsChanged={() => void queryClient.invalidateQueries({ queryKey: ['tickets'] })}
               />
             ) : (
-              <div className="flex h-full min-h-[420px] flex-col items-center justify-center p-6 text-center">
+              <div className="flex h-full min-h-72 flex-col items-center justify-center p-6 text-center">
                 <Ticket className="mb-3 h-10 w-10 text-neutral-300" />
                 <h3 className="text-sm font-medium text-primary">Select a ticket</h3>
                 <p className="mt-1 max-w-xs text-xs text-neutral-600">

@@ -204,8 +204,8 @@ export default function BookingsCalendar({
         displayEventTime={false}
         resourceAreaHeaderContent=""
         resourceAreaWidth={`${RESOURCE_AREA_WIDTH}px`}
-        height={Math.max(480, properties.length * 52 + 120)}
-        slotMinWidth={64}
+        height={Math.max(400, properties.length * 44 + 104)}
+        slotMinWidth={56}
         select={handleSelect}
         eventClick={handleEventClick}
         schedulerLicenseKey="GPL-My-Project-Is-Open-Source"

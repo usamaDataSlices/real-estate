@@ -1,4 +1,4 @@
-import { Building2, CalendarDays, Home, KeyRound, Shield, StickyNote, Ticket } from 'lucide-react'
+import { Building2, CalendarDays, FileSpreadsheet, Home, KeyRound, Shield, StickyNote, Ticket } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 
 export type NavItem = {
@@ -34,6 +34,11 @@ export const mainNavItems: NavItem[] = [
     label: 'Tickets',
     to: '/tickets',
     icon: Ticket,
+  },
+  {
+    label: 'Excel Editor',
+    to: '/excel',
+    icon: FileSpreadsheet,
   },
   {
     label: 'Admin Portal',

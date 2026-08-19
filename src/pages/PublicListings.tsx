@@ -56,8 +56,8 @@ export default function PublicListings() {
   }, [filters, remoteListings])
 
   return (
-    <div className="space-y-12">
-      <section className="relative overflow-hidden rounded-3xl bg-neutral-900 py-24 px-6 sm:px-12 text-center shadow-xl">
+    <div className="space-y-8">
+      <section className="relative overflow-hidden rounded-3xl bg-neutral-900 px-6 py-16 text-center shadow-xl sm:px-8">
         <div className="absolute inset-0 pointer-events-none">
           <img
             src="https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?auto=format&fit=crop&w=1600&q=80"
@@ -67,7 +67,7 @@ export default function PublicListings() {
           <div className="absolute inset-0 bg-gradient-to-t from-neutral-950/80 via-neutral-950/40 to-neutral-950/60" />
         </div>
 
-        <div className="relative mx-auto max-w-3xl space-y-6">
+        <div className="relative mx-auto max-w-3xl space-y-4">
           <span className="inline-flex items-center rounded-full bg-accent/25 px-4 py-1.5 text-xs font-bold uppercase tracking-widest text-accent-light backdrop-blur-md">
             ✨ Premium Rental Collection
           </span>
@@ -80,7 +80,7 @@ export default function PublicListings() {
         </div>
       </section>
 
-      <div className="space-y-6">
+      <div className="space-y-4">
         <div className="flex flex-col gap-2">
           <h2 className="text-2xl font-bold font-heading text-neutral-900 border-l-4 border-accent pl-3">
             Explore Rentals
@@ -93,13 +93,13 @@ export default function PublicListings() {
         <ListingFilters value={filters} onChange={setFilters} />
 
         {isLoading ? (
-          <div className="flex justify-center py-12">
+          <div className="flex justify-center py-8">
             <div className="flex items-center gap-3 rounded-2xl bg-white px-6 py-4 shadow-sm border border-neutral-200/50">
               <span className="text-neutral-600 font-medium">Curating properties...</span>
             </div>
           </div>
         ) : error ? (
-          <div className="rounded-2xl border border-danger/20 bg-danger/5 p-6 text-center text-danger font-semibold">
+          <div className="rounded-2xl border border-danger/20 bg-danger/5 p-4 text-center font-semibold text-danger">
             Failed to connect to the properties roster. Please verify connection credentials.
           </div>
         ) : null}
@@ -114,7 +114,7 @@ export default function PublicListings() {
             <ListingTable listings={listings} />
           </div>
         ) : !isLoading && !error ? (
-          <div className="rounded-2xl border border-neutral-200/60 bg-white p-12 text-center shadow-xs">
+          <div className="rounded-2xl border border-neutral-200/60 bg-white p-8 text-center shadow-xs">
             <p className="font-semibold text-neutral-800">No properties matching filters</p>
             <p className="mt-1 text-sm text-neutral-600">Try adjusting your pricing limits or location criteria.</p>
           </div>

@@ -150,11 +150,11 @@ export default function NotesPage() {
   }
 
   return (
-    <div className="space-y-6">
-      <section className="flex flex-col gap-4 rounded-xl border border-neutral-200 bg-white p-6 shadow-sm md:flex-row md:items-center md:justify-between">
+    <div className="space-y-4">
+      <section className="flex flex-col gap-3 rounded-xl border border-neutral-200 bg-white p-4 shadow-sm md:flex-row md:items-center md:justify-between">
         <div>
           <p className="mb-1 text-xs font-medium uppercase tracking-[0.2em] text-accent-dark">Workspace</p>
-          <h1 className="text-3xl font-heading font-semibold text-primary">Notes</h1>
+          <h1 className="text-2xl font-heading font-semibold text-primary">Notes</h1>
           <p className="mt-1 text-sm text-neutral-600">Rich-text notes with attachments and full-text search.</p>
         </div>
         <button type="button" className="btn-primary inline-flex items-center gap-2" onClick={startCreate}>
@@ -201,9 +201,9 @@ export default function NotesPage() {
             )}
           </div>
 
-          <div className="grid gap-6 lg:grid-cols-[minmax(280px,360px)_1fr]">
+          <div className="grid gap-4 lg:grid-cols-[minmax(280px,340px)_1fr]">
             <section className="rounded-xl border border-neutral-200 bg-white shadow-sm">
-              <div className="border-b border-neutral-100 px-4 py-3">
+              <div className="border-b border-neutral-100 px-3 py-2">
                 <h2 className="text-sm font-semibold uppercase tracking-wide text-neutral-500">All notes</h2>
               </div>
 
@@ -221,7 +221,7 @@ export default function NotesPage() {
                         <button
                           type="button"
                           onClick={() => openNote(note.id)}
-                          className={`w-full px-4 py-3 text-left transition-colors hover:bg-neutral-50 ${
+                          className={`w-full px-3 py-2 text-left transition-colors hover:bg-neutral-50 ${
                             isSelected ? 'bg-primary/5 ring-1 ring-inset ring-primary/20' : ''
                           }`}
                         >
@@ -231,7 +231,7 @@ export default function NotesPage() {
                           <p className="mt-1 line-clamp-2 text-sm text-neutral-600">
                             <HighlightedText text={notePreview(note)} terms={highlightTerms} />
                           </p>
-                          <p className="mt-2 text-xs text-neutral-400">
+                          <p className="mt-1 text-xs text-neutral-400">
                             Updated {new Date(note.updatedAt || note.createdAt || '').toLocaleString()}
                           </p>
                         </button>
@@ -283,7 +283,7 @@ export default function NotesPage() {
                   onError={setMessage}
                 />
               ) : (
-                <div className="flex min-h-[420px] flex-col items-center justify-center p-8 text-center">
+                <div className="flex min-h-72 flex-col items-center justify-center p-6 text-center">
                   <StickyNote className="mb-4 h-12 w-12 text-neutral-300" />
                   <h3 className="text-lg font-medium text-primary">Select a note</h3>
                   <p className="mt-1 max-w-sm text-sm text-neutral-600">

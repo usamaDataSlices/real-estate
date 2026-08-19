@@ -14,7 +14,7 @@ export default function AppLayout() {
       <div className="flex min-h-screen flex-1 flex-col min-w-0">
         <MobileHeader onMenuClick={() => setSidebarOpen(true)} />
 
-        <main className="container flex-1 py-10">
+        <main className="container flex-1 py-6">
           <Outlet />
         </main>
 

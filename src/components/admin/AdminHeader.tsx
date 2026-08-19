@@ -12,10 +12,10 @@ export default function AdminHeader({ activeTab, onTabChange }: Props) {
   const { user } = useAuth()
 
   return (
-    <section className="flex flex-col gap-4 rounded-xl border border-neutral-200 bg-white p-6 shadow-sm md:flex-row md:items-center md:justify-between">
+    <section className="flex flex-col gap-3 rounded-xl border border-neutral-200 bg-white p-4 shadow-sm md:flex-row md:items-center md:justify-between">
       <div>
         <p className="mb-1 text-xs font-medium uppercase tracking-[0.2em] text-accent-dark">Admin Panel</p>
-        <h2 className="text-3xl font-heading font-semibold text-primary">
+        <h2 className="text-2xl font-heading font-semibold text-primary">
           {activeTab === 'listings' ? 'Property Listings' : 'Document Hub'}
         </h2>
         <p className="mt-1 text-sm text-neutral-600">Signed in as {user?.email ?? 'admin'}.</p>

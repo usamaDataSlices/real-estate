@@ -160,10 +160,10 @@ export default function BookingsPage() {
   const loadError = propertiesQuery.error || bookingsQuery.error
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       <section className="space-y-2">
         <p className="text-sm uppercase tracking-[0.2em] text-accent-dark">Operations</p>
-        <h1 className="text-3xl font-heading font-semibold text-primary">Bookings</h1>
+        <h1 className="text-2xl font-heading font-semibold text-primary">Bookings</h1>
         <p className="max-w-3xl text-sm text-neutral-600">
           Manage reservations across your portfolio. Drag on a property row to create a booking, or click an existing bar to edit.
         </p>

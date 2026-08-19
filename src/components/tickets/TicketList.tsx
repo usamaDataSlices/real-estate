@@ -81,7 +81,7 @@ export default function TicketList({
             <button
               type="button"
               onClick={() => onSelect(ticket.id)}
-              className={`group flex w-full items-start gap-2 px-2.5 py-2 text-left transition-colors ${
+              className={`group flex w-full items-start gap-2 px-2.5 py-1.5 text-left transition-colors ${
                 isSelected
                   ? 'border-l-[3px] border-l-primary bg-primary/[0.06] pl-[calc(0.625rem-3px)]'
                   : 'border-l-[3px] border-l-transparent hover:bg-neutral-50'

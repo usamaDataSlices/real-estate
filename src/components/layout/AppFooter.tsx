@@ -3,9 +3,9 @@ import { footerNavItems } from '../../config/navigation'
 
 export default function AppFooter() {
   return (
-    <footer className="border-t border-neutral-200 bg-white py-10 mt-16 text-neutral-600 text-sm">
-      <div className="container grid gap-8 md:grid-cols-3">
-        <div className="space-y-4">
+    <footer className="mt-10 border-t border-neutral-200 bg-white py-6 text-sm text-neutral-600">
+      <div className="container grid gap-5 md:grid-cols-3">
+        <div className="space-y-3">
           <div className="flex items-center gap-2">
             <span className="text-base font-bold font-heading tracking-wide text-neutral-900">
               BELGRAVIA <span className="font-extralight text-accent-dark">ESTATES</span>

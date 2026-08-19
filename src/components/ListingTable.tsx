@@ -25,12 +25,12 @@ export default function ListingTable({ listings }: { listings: Listing[] }) {
         <table className="w-full min-w-[800px] text-left border-collapse text-sm">
           <thead>
             <tr className="border-b border-neutral-200 bg-neutral-100/60 text-xs font-bold uppercase tracking-wider text-neutral-600">
-              <th className="px-6 py-4">Property</th>
-              <th className="hidden px-6 py-4 md:table-cell">Type</th>
-              <th className="hidden px-6 py-4 lg:table-cell">Specifications</th>
-              <th className="hidden px-6 py-4 xl:table-cell">Size</th>
-              <th className="px-6 py-4">Rent Rate</th>
-              <th className="px-6 py-4 text-right">Action</th>
+              <th className="px-4 py-2.5">Property</th>
+              <th className="hidden px-4 py-2.5 md:table-cell">Type</th>
+              <th className="hidden px-4 py-2.5 lg:table-cell">Specifications</th>
+              <th className="hidden px-4 py-2.5 xl:table-cell">Size</th>
+              <th className="px-4 py-2.5">Rent Rate</th>
+              <th className="px-4 py-2.5 text-right">Action</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-neutral-200/60">
@@ -44,9 +44,9 @@ export default function ListingTable({ listings }: { listings: Listing[] }) {
                   className="group transition-colors duration-150 hover:bg-neutral-50/50"
                 >
                   {/* Property Info Col */}
-                  <td className="px-6 py-4.5">
-                    <div className="flex items-center gap-4 min-w-[280px]">
-                      <div className="relative h-16 w-16 shrink-0 overflow-hidden rounded-xl border border-neutral-200/50 bg-neutral-100">
+                  <td className="px-4 py-3">
+                    <div className="flex min-w-[260px] items-center gap-3">
+                      <div className="relative h-14 w-14 shrink-0 overflow-hidden rounded-xl border border-neutral-200/50 bg-neutral-100">
                         <img
                           src={coverUrl}
                           alt={listing.title}
@@ -73,15 +73,15 @@ export default function ListingTable({ listings }: { listings: Listing[] }) {
                   </td>
 
                   {/* Property Type Col */}
-                  <td className="hidden px-6 py-4.5 md:table-cell">
+                  <td className="hidden px-4 py-3 md:table-cell">
                     <span className="inline-flex items-center rounded-md bg-neutral-100 px-2.5 py-1 text-2xs font-bold uppercase tracking-wider text-neutral-600 border border-neutral-200/40">
                       {listing.type}
                     </span>
                   </td>
 
                   {/* Specifications Col */}
-                  <td className="hidden px-6 py-4.5 text-neutral-600 lg:table-cell">
-                    <div className="flex items-center gap-4 text-xs font-semibold">
+                  <td className="hidden px-4 py-3 text-neutral-600 lg:table-cell">
+                    <div className="flex items-center gap-3 text-xs font-semibold">
                       <span className="flex items-center gap-1">
                         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="h-4 w-4">
                           <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 18V8.25A2.25 2.25 0 0 1 4.5 6h15a2.25 2.25 0 0 1 2.25 2.25V18M2.25 13.5h19.5M2.25 18h19.5m-16.5-4.5V9a1.5 1.5 0 0 1 1.5-1.5h3A1.5 1.5 0 0 1 12 9v4.5" />
@@ -98,12 +98,12 @@ export default function ListingTable({ listings }: { listings: Listing[] }) {
                   </td>
 
                   {/* Size Col */}
-                  <td className="hidden px-6 py-4.5 font-medium text-neutral-600 xl:table-cell">
+                  <td className="hidden px-4 py-3 font-medium text-neutral-600 xl:table-cell">
                     {listing.size.toLocaleString()} sqft
                   </td>
 
                   {/* expected Rental price Col */}
-                  <td className="px-6 py-4.5 font-bold text-accent-dark font-sans text-base">
+                  <td className="px-4 py-3 font-sans text-sm font-bold text-accent-dark">
                     <div className="flex flex-col">
                       <span>{formatPrice(listing.price)}</span>
                       <span className="text-2xs font-semibold text-neutral-600 uppercase tracking-wider mt-0.5">
@@ -113,7 +113,7 @@ export default function ListingTable({ listings }: { listings: Listing[] }) {
                   </td>
 
                   {/* Action Col */}
-                  <td className="px-6 py-4.5 text-right">
+                  <td className="px-4 py-3 text-right">
                     <Link 
                       to={`/property/${listing.id}`} 
                       className="inline-flex h-9 items-center justify-center gap-1.5 rounded-lg border border-neutral-200 bg-white px-4 py-1.5 text-xs font-bold text-neutral-900 transition-all hover:bg-neutral-50 hover:border-accent"

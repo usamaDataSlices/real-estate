@@ -1,0 +1,72 @@
+.excel-action {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  border: 1px solid var(--color-neutral-200);
+  border-radius: 0.75rem;
+  background: white;
+  color: var(--color-primary);
+  padding: 0.7rem 1rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.excel-action:hover {
+  border-color: var(--color-accent);
+  background: var(--color-neutral-50);
+}
+
+.excel-grid {
+  min-height: 32rem;
+}
+
+.excel-grid .Spreadsheet {
+  width: max-content;
+  min-width: 100%;
+  border-collapse: collapse;
+  font-family: var(--font-sans);
+  font-size: 0.875rem;
+}
+
+.excel-grid .Spreadsheet__cell,
+.excel-grid .Spreadsheet__header,
+.excel-grid .Spreadsheet__row-label {
+  min-width: 8rem;
+  height: 2.25rem;
+  border-color: var(--color-neutral-200);
+}
+
+.excel-grid .Spreadsheet__header,
+.excel-grid .Spreadsheet__row-label {
+  min-width: 2.75rem;
+  background: var(--color-neutral-100);
+  color: var(--color-neutral-600);
+  font-weight: 600;
+}
+
+.excel-grid .Spreadsheet__cell--selected {
+  outline-color: var(--color-success);
+}
+
+.excel-page-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--color-neutral-200);
+  border-radius: 0.5rem;
+  background: white;
+  padding: 0.4rem;
+  color: var(--color-primary);
+}
+
+.excel-page-button:hover:not(:disabled) {
+  border-color: var(--color-accent);
+  background: var(--color-neutral-50);
+}
+
+.excel-page-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.35;
+}

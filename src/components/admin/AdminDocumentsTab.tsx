@@ -31,8 +31,8 @@ export default function AdminDocumentsTab({
   onDelete,
 }: Props) {
   return (
-    <section className="space-y-6">
-      <div className="flex items-center justify-between rounded-xl border border-neutral-200 bg-white p-4 shadow-sm">
+    <section className="space-y-4">
+      <div className="flex items-center justify-between rounded-xl border border-neutral-200 bg-white p-3 shadow-sm">
         <div>
           <h3 className="text-lg font-semibold text-primary">All Documents</h3>
           <p className="text-sm text-neutral-600">{documents.length} files stored securely.</p>
@@ -43,12 +43,12 @@ export default function AdminDocumentsTab({
       </div>
 
       {uploading ? (
-        <div className="grid gap-6 md:grid-cols-2">
+        <div className="grid gap-4 md:grid-cols-2">
           <div className="card">
             <h4 className="mb-4 text-lg font-semibold">Upload Existing DOCX</h4>
             <DocxUploader onParsed={onParsedUpload} />
           </div>
-          <div className="card flex flex-col items-center justify-center border-dashed bg-neutral-50 p-8 text-center">
+          <div className="card flex flex-col items-center justify-center border-dashed bg-neutral-50 p-6 text-center">
             <FileEdit className="mb-4 h-12 w-12 text-neutral-400" />
             <h4 className="mb-2 text-lg font-semibold text-primary">Create Blank Document</h4>
             <p className="mb-6 px-4 text-sm text-neutral-600">
@@ -91,7 +91,7 @@ export default function AdminDocumentsTab({
               return (
                 <div key={doc.id} className="card group flex h-full flex-col transition-transform hover:-translate-y-1">
                   <div className="flex-1">
-                    <div className="mb-3 flex items-start justify-between">
+                    <div className="mb-2 flex items-start justify-between">
                       <div className="rounded-lg bg-blue-50 p-2.5 text-blue-700">
                         <FileText className="h-5 w-5" />
                       </div>
@@ -99,12 +99,12 @@ export default function AdminDocumentsTab({
                         {new Date(doc.updatedAt || doc.createdAt || '').toLocaleDateString()}
                       </span>
                     </div>
-                    <h4 className="mb-2 line-clamp-2 text-lg font-semibold leading-tight text-primary">{doc.title}</h4>
+                    <h4 className="mb-2 line-clamp-2 text-base font-semibold leading-tight text-primary">{doc.title}</h4>
                     <p className="inline-block max-w-full truncate rounded bg-neutral-100 px-2 py-1 text-xs font-medium text-neutral-600">
                       Link: {linkedProperty?.title || 'Unknown Property'}
                     </p>
                   </div>
-                  <div className="mt-4 flex items-center justify-between border-t border-neutral-100 pt-4 transition-opacity md:opacity-0 md:group-hover:opacity-100">
+                  <div className="mt-3 flex items-center justify-between border-t border-neutral-100 pt-3 transition-opacity md:opacity-0 md:group-hover:opacity-100">
                     <button type="button" className="flex items-center gap-1 text-sm font-medium text-primary hover:text-accent-dark" onClick={() => onEdit(doc)}>
                       <FileEdit className="h-4 w-4" /> Edit
                     </button>
@@ -119,7 +119,7 @@ export default function AdminDocumentsTab({
               )
             })
           ) : (
-            <div className="rounded-xl border border-dashed border-neutral-300 bg-white py-16 text-center md:col-span-2 lg:col-span-3">
+            <div className="rounded-xl border border-dashed border-neutral-300 bg-white py-10 text-center md:col-span-2 lg:col-span-3">
               <FileText className="mx-auto mb-4 h-12 w-12 text-neutral-300" />
               <h3 className="text-lg font-medium text-primary">No Documents Found</h3>
               <p className="mx-auto mb-6 mt-1 max-w-md text-neutral-500">

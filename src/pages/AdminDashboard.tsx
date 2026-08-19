@@ -167,7 +167,7 @@ export default function AdminDashboard() {
   }
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-5">
       <AdminHeader activeTab={activeTab} onTabChange={setActiveTab} />
       <StatusBanner message={message} />
 

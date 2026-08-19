@@ -76,7 +76,7 @@ export default function CredentialTicketList({
             <button
               type="button"
               onClick={() => onSelect(credential.id)}
-              className={`group relative flex w-full gap-3 px-3 py-2.5 text-left transition-colors ${
+              className={`group relative flex w-full gap-2.5 px-3 py-2 text-left transition-colors ${
                 isSelected
                   ? 'border-l-[3px] border-l-primary bg-primary/[0.07] pl-[calc(0.75rem-3px)]'
                   : 'border-l-[3px] border-l-transparent hover:bg-neutral-50'

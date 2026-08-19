@@ -32,7 +32,7 @@ export default function AdminListingsTab({
   onImportMessage,
 }: Props) {
   return (
-    <section className="grid gap-8 xl:grid-cols-[1fr_420px]">
+    <section className="grid gap-5 xl:grid-cols-[1fr_400px]">
       <div className="space-y-4">
         <PropertyExcelImporter
           onComplete={(summary) => {
@@ -63,7 +63,7 @@ export default function AdminListingsTab({
             />
           ))
         ) : (
-          <div className="card py-12 text-center text-neutral-500">No properties yet. Create the first listing on the right.</div>
+          <div className="card py-8 text-center text-neutral-500">No properties yet. Create the first listing on the right.</div>
         )}
       </div>
 
